@@ -1,0 +1,296 @@
+﻿{% extends "base.html" %}
+
+{% block title %}AgriSmart AI — Crop Health & Disease Diagnosis{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Hero Header -->
+    <section class="hero-section">
+        <div class="hero-badge">
+            <span class="hero-badge-icon">🌾</span>
+            <span>SIH 2026 Smart Agriculture Platform</span>
+        </div>
+        <h1 class="hero-title">Protect Your Harvest With Instant AI Diagnosis</h1>
+        <p class="hero-tagline">{{ app_tagline }}</p>
+        <p class="hero-description">
+            Upload a clear photo of a plant leaf or crop foliage. Our computer-vision system will analyze leaf symptoms, detect potential diseases, and provide safe precautionary guidance to protect your yield.
+        </p>
+    </section>
+
+    <!-- Dev / Mock Mode Alert Banner (shown when model checkpoint is not yet present) -->
+    {% if not is_model_live %}
+    <div class="status-banner mock-mode-banner" id="checkpoint-notice-banner" role="alert">
+        <div class="status-banner-icon">⚠️</div>
+        <div class="status-banner-content">
+            <div class="status-banner-title">DEVELOPMENT / UI DEMO MODE ACTIVE</div>
+            <div class="status-banner-text">
+                Trained model weights (<code>best_model.pt</code>) have not yet been produced. The application is running in an <strong>explicit mock mode</strong> for interface demonstration. Once the SIH kickoff dataset is trained, live predictions will automatically replace this mode.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Diagnostic Section -->
+    <section class="diagnosis-section" id="diagnosis-section">
+        <div class="card main-card">
+
+            <!-- Upload Area (Initial State) -->
+            <div class="upload-container" id="upload-container">
+                <div class="section-header">
+                    <h2 class="section-title">Upload Crop Leaf Image</h2>
+                    <p class="section-subtitle">Take a clear, close-up photograph of the affected leaf in good lighting</p>
+                </div>
+
+                <form id="upload-form" action="/analyze" method="post" enctype="multipart/form-data">
+                    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Drop crop image here or click to upload">
+                        <div class="dropzone-content" id="dropzone-prompt">
+                            <div class="dropzone-icon-circle">
+                                <svg class="dropzone-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <h3 class="dropzone-title">Drag & Drop Your Leaf Photo Here</h3>
+                            <p class="dropzone-or">or</p>
+                            <div class="btn-group-upload">
+                                <label for="image-input" class="btn btn-primary btn-upload">
+                                    <span>Browse Files</span>
+                                </label>
+                                <label for="camera-input" class="btn btn-secondary btn-camera">
+                                    <span>📷 Use Camera</span>
+                                </label>
+                            </div>
+                            <p class="dropzone-formats">Supported formats: JPG, JPEG, PNG, WEBP (Max 16 MB)</p>
+                        </div>
+
+                        <!-- Hidden File Inputs -->
+                        <input type="file" id="image-input" name="image" accept="image/jpeg,image/png,image/webp,image/jpg" class="file-input-hidden">
+                        <input type="file" id="camera-input" accept="image/*" capture="environment" class="file-input-hidden">
+
+                        <!-- Client-side Image Preview (Initially Hidden) -->
+                        <div class="preview-container" id="preview-container" style="display: none;">
+                            <img id="image-preview" src="" alt="Selected leaf preview" class="preview-image">
+                            <div class="preview-details">
+                                <span class="preview-filename" id="preview-filename">image.jpg</span>
+                                <span class="preview-filesize" id="preview-filesize">0 KB</span>
+                            </div>
+                            <button type="button" class="btn btn-text btn-remove" id="btn-remove-image">
+                                ✕ Choose Different Photo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error Message Display -->
+                    <div class="error-box" id="error-box" style="display: none;" role="alert">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text" id="error-text">An error occurred.</span>
+                    </div>
+
+                    <!-- Action Submit Button -->
+                    <div class="action-bar">
+                        <button type="submit" class="btn btn-cta btn-large" id="btn-analyze" disabled>
+                            <span class="btn-icon">🔬</span>
+                            <span>Analyze Crop Health</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Loading State Spinner (Shown while analyzing) -->
+            <div class="loading-container" id="loading-container" style="display: none;" aria-live="polite">
+                <div class="loading-spinner"></div>
+                <h3 class="loading-title">Analyzing Foliage Symptoms…</h3>
+                <p class="loading-subtitle">Inspecting discoloration, lesion patterns, and leaf tissue morphology</p>
+                <div class="loading-progress-track">
+                    <div class="loading-progress-bar"></div>
+                </div>
+            </div>
+
+            <!-- Result Section (Populated dynamically on analysis completion) -->
+            <div class="result-container" id="result-container" style="display: none;" aria-live="polite">
+
+                <!-- Mock Warning Banner inside Results -->
+                <div class="mock-warning-card" id="mock-warning-box" style="display: none;">
+                    <div class="mock-badge">DEMO SIMULATION</div>
+                    <p class="mock-warning-text" id="mock-disclaimer-text">
+                        This result is a simulated demonstration for interface testing. No trained weights were loaded.
+                    </p>
+                </div>
+
+                <div class="result-header">
+                    <h2 class="result-section-title">Crop Health Diagnosis</h2>
+                    <span class="timestamp-badge" id="result-timestamp">Analyzed just now</span>
+                </div>
+
+                <!-- Hero Diagnosis Block -->
+                <div class="diagnosis-hero-card" id="diagnosis-hero-card">
+                    <div class="diagnosis-visual-column">
+                        <div class="result-image-wrapper">
+                            <img id="result-image-display" src="" alt="Analyzed Crop Leaf" class="result-leaf-img">
+                            <span class="status-overlay-tag" id="status-overlay-tag">Status</span>
+                        </div>
+                    </div>
+
+                    <div class="diagnosis-info-column">
+                        <div class="health-status-badge" id="health-status-badge">
+                            <span class="status-icon" id="status-icon">●</span>
+                            <span class="status-label" id="status-label">HEALTH STATUS</span>
+                        </div>
+
+                        <h3 class="diagnosis-title" id="diagnosis-title">Crop — Condition</h3>
+                        <p class="diagnosis-meta">
+                            Detected Crop: <strong id="diagnosis-crop-name">—</strong> &nbsp;|&nbsp;
+                            Condition: <strong id="diagnosis-condition-name">—</strong>
+                        </p>
+
+                        <!-- Confidence Meter -->
+                        <div class="confidence-container">
+                            <div class="confidence-header">
+                                <span class="confidence-label" id="confidence-label">Diagnosis Confidence</span>
+                                <div class="confidence-val-group">
+                                    <span class="badge-simulated" id="badge-simulated" style="display: none;">SIMULATED DEMO RESULT</span>
+                                    <span class="confidence-val" id="confidence-val">0%</span>
+                                </div>
+                            </div>
+                            <div class="confidence-meter-bg">
+                                <div class="confidence-meter-fill" id="confidence-meter-fill" style="width: 0%;"></div>
+                            </div>
+                            <p class="confidence-note" id="confidence-note">Calculated via multi-class softmax probability score.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Precautionary Guidance Card (Visually Distinct from Diagnosis) -->
+                <div class="guidance-card" id="guidance-card">
+                    <div class="guidance-header">
+                        <div class="guidance-icon-circle">🛡️</div>
+                        <div>
+                            <h4 class="guidance-title">Basic Precautionary Guidance</h4>
+                            <p class="guidance-subtitle">Recommended immediate cultural and preventive steps</p>
+                        </div>
+                    </div>
+
+                    <ul class="guidance-list" id="guidance-list">
+                        <!-- Populated dynamically -->
+                    </ul>
+
+                    <div class="advisory-disclaimer">
+                        <span class="advisory-icon">ℹ️</span>
+                        <span><strong>Advisory Note:</strong> This assessment provides general cultural and phytosanitary precautions. Always confirm with an agricultural extension officer before applying chemical treatments.</span>
+                    </div>
+                </div>
+
+                <!-- Secondary Predictions Breakdown -->
+                <div class="top-predictions-accordion" id="top-predictions-accordion">
+                    <h4 class="accordion-title" id="accordion-title">Alternative Differential Diagnoses</h4>
+                    <div class="accordion-list" id="top-predictions-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="result-actions">
+                    <button type="button" class="btn btn-primary btn-large" id="btn-reset-analysis">
+                        <span>🔄 Analyze Another Leaf</span>
+                    </button>
+                    <button type="button" class="btn btn-assistant btn-large" id="btn-open-assistant">
+                        <span>💬 Ask AI Assistant</span>
+                        <span class="pill-bonus">Planned Module</span>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Future Platform Modules Section -->
+    <section class="future-modules-section" id="future-modules">
+        <div class="section-header text-center">
+            <span class="sub-badge">SIH 2026 Expansion</span>
+            <h2 class="section-title">AgriSmart AI Integrated Ecosystem</h2>
+            <p class="section-subtitle">Beyond computer-vision disease diagnosis, AgriSmart AI includes clean service boundaries for full-spectrum farm intelligence.</p>
+        </div>
+
+        <div class="modules-grid">
+            <div class="module-card">
+                <div class="module-icon">🌦️</div>
+                <h3 class="module-title">Weather Intelligence</h3>
+                <p class="module-desc">Real-time hyper-local microclimate alerts and spray suitability windows based on wind and precipitation forecasts.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon">💧</div>
+                <h3 class="module-title">Smart Irrigation Advisor</h3>
+                <p class="module-desc">Crop-specific daily water requirement estimation factoring in soil evapotranspiration and sensor telemetry.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon">🌾</div>
+                <h3 class="module-title">Crop Recommendation</h3>
+                <p class="module-desc">Optimal crop matching based on soil chemistry (NPK, pH) and historical regional rainfall patterns.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon">🌱</div>
+                <h3 class="module-title">Sustainability Index</h3>
+                <p class="module-desc">Quantitative scoring of farm inputs to promote eco-friendly, carbon-conscious agronomic practices.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon">🤖</div>
+                <h3 class="module-title">Farmer AI Assistant</h3>
+                <p class="module-desc">Conversational vernacular advice answering pest management questions and crop calendar planning.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon">📡</div>
+                <h3 class="module-title">IoT Telemetry & Agentic Advisor</h3>
+                <p class="module-desc">Multi-sensor ground station integration driving autonomous multi-step intervention workflows.</p>
+                <span class="module-status">Service Stub Ready</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about-section" id="about-section">
+        <div class="about-card">
+            <h3>About AgriSmart AI for SIH 2026</h3>
+            <p>AgriSmart AI is engineered to solve the Smart India Hackathon problem statement for smart agriculture. It combines transfer learning on deep convolutional backbones (ResNet-50) with completely dynamic class discovery. No disease categories are hardcoded, ensuring that when the SIH organizers provide the official class list at kickoff, the system adapts without code changes.</p>
+        </div>
+    </section>
+
+</div>
+
+<!-- AI Assistant Modal Placeholder -->
+<div class="modal-backdrop" id="assistant-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="assistant-modal-title">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title-group">
+                <span class="modal-icon">💬</span>
+                <h3 class="modal-title" id="assistant-modal-title">AgriSmart AI Assistant</h3>
+            </div>
+            <button type="button" class="btn-close-modal" id="btn-close-assistant" aria-label="Close modal">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-badge-highlight">Future Bonus Module</div>
+            <p>The <strong>Farmer AI Assistant</strong> will provide interactive, multilingual conversation about crop health, organic remedies, weather trends, and market advisory.</p>
+            <div class="assistant-preview-box">
+                <div class="chat-bubble chat-ai">
+                    👋 <em>Namaste Farmer! In our upcoming release, you will be able to ask questions about your diagnosis and receive local vernacular guidance.</em>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btn-close-assistant-footer">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

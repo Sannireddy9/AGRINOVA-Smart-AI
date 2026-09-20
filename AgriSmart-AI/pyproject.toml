@@ -1,0 +1,11 @@
+[project]
+name = "agrismart-ai"
+version = "0.1.0"
+description = "AI-Powered Smart Agriculture Platform"
+requires-python = ">=3.10"
+
+[tool.pyright]
+extraPaths = ["."]
+
+[tool.pyrefly]
+search-path = ["."]

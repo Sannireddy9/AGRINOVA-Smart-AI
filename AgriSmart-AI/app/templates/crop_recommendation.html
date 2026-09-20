@@ -1,0 +1,375 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Crop Recommendation — {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="crop-rec-wrapper">
+
+    <!-- Top Banner for Crop Recommendation Module Status -->
+    {% if not is_crop_model_live %}
+    <div class="demo-mode-banner" id="crop-demo-banner" role="alert">
+        <div class="banner-content">
+            <span class="banner-icon">⚠️</span>
+            <div class="banner-text">
+                <strong>DEVELOPMENT / UI DEMO MODE — CROP MODEL UNTRAINED</strong>
+                <span>Crop recommendations are simulated demonstrations for interface testing. Train the model using <code>python -m model.crop_recommendation.train</code>.</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="container crop-container">
+
+        <!-- Header Hero -->
+        <div class="crop-header-hero">
+            <div class="badge-row">
+                <span class="module-chip">SIH 2026 Bonus Module</span>
+                {% if is_crop_model_live %}
+                    <span class="badge badge-live" title="Trained Random Forest model loaded from disk">
+                        <span class="badge-dot"></span> Crop Model: LIVE
+                    </span>
+                {% else %}
+                    <span class="badge badge-mock" title="Untrained model — simulated mode active">
+                        <span class="badge-dot"></span> Crop Model: DEMO
+                    </span>
+                {% endif %}
+            </div>
+            <h1 class="page-main-title">🌾 Intelligent Crop Recommendation</h1>
+            <p class="page-subtitle">
+                Rank optimal crop varieties tailored to your field's soil chemistry, rainfall, and climate parameters using machine learning.
+            </p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="crop-card form-card">
+            <form id="crop-recommendation-form" action="/recommend-crops" method="POST">
+
+                <!-- SECTION 1: MODEL FEATURES USED -->
+                <div class="form-section">
+                    <div class="section-title-group">
+                        <span class="section-num-pill">1</span>
+                        <div>
+                            <h2 class="section-heading">ML Features Used for Prediction</h2>
+                            <p class="section-desc">
+                                The current model generates recommendations using N, P, K, temperature, humidity, soil pH, and rainfall.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="fields-grid">
+                        <!-- Soil pH -->
+                        <div class="form-group">
+                            <label for="ph" class="field-label">
+                                Soil pH
+                                <span class="field-hint" id="ph-hint-text">(Range: 3.5 – 9.5)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="ph" name="ph" class="form-control" step="0.1" min="3.5" max="9.5" placeholder="e.g. 6.5" required value="{{ form_data.ph if form_data else '6.5' }}">
+                                <span class="unit-badge">pH</span>
+                            </div>
+                            <span class="field-subtext">Optimal range for most field crops is 6.0 – 7.5</span>
+                        </div>
+
+                        <!-- Temperature -->
+                        <div class="form-group">
+                            <label for="temperature" class="field-label">
+                                Temperature
+                                <span class="field-hint">(Ambient Average)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="temperature" name="temperature" class="form-control" step="0.5" min="-10" max="60" placeholder="e.g. 28.0" required value="{{ form_data.temperature if form_data else '28.0' }}">
+                                <span class="unit-badge">°C</span>
+                            </div>
+                            <span class="field-subtext">Average seasonal temperature</span>
+                        </div>
+
+                        <!-- Relative Humidity -->
+                        <div class="form-group">
+                            <label for="humidity" class="field-label">
+                                Relative Humidity
+                                <span class="field-hint">(Atmospheric)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="humidity" name="humidity" class="form-control" step="1" min="10" max="100" placeholder="e.g. 70" required value="{{ form_data.humidity if form_data else '70' }}">
+                                <span class="unit-badge">%</span>
+                            </div>
+                            <span class="field-subtext">Typical humidity during vegetative stage</span>
+                        </div>
+
+                        <!-- Annual / Seasonal Rainfall -->
+                        <div class="form-group">
+                            <label for="rainfall" class="field-label">
+                                Expected Rainfall
+                                <span class="field-hint">(Precipitation)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="rainfall" name="rainfall" class="form-control" step="5" min="10" max="3000" placeholder="e.g. 120" required value="{{ form_data.rainfall if form_data else '120' }}">
+                                <span class="unit-badge">mm</span>
+                            </div>
+                            <span class="field-subtext">Expected seasonal rainfall</span>
+                        </div>
+
+                        <!-- Nitrogen (N) -->
+                        <div class="form-group">
+                            <label for="n" class="field-label">
+                                Nitrogen (N)
+                                <span class="field-hint">(Soil ratio)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="n" name="n" class="form-control" step="1" min="0" max="300" placeholder="e.g. 50" required value="{{ form_data.n if form_data else '50' }}">
+                                <span class="unit-badge">kg/ha</span>
+                            </div>
+                            <span class="field-subtext">Available nitrogen from Soil Health Card</span>
+                        </div>
+
+                        <!-- Phosphorus (P) -->
+                        <div class="form-group">
+                            <label for="p" class="field-label">
+                                Phosphorus (P)
+                                <span class="field-hint">(Soil ratio)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="p" name="p" class="form-control" step="1" min="0" max="300" placeholder="e.g. 50" required value="{{ form_data.p if form_data else '50' }}">
+                                <span class="unit-badge">kg/ha</span>
+                            </div>
+                            <span class="field-subtext">Available phosphorus from Soil Health Card</span>
+                        </div>
+
+                        <!-- Potassium (K) -->
+                        <div class="form-group">
+                            <label for="k" class="field-label">
+                                Potassium (K)
+                                <span class="field-hint">(Soil ratio)</span>
+                            </label>
+                            <div class="input-with-badge">
+                                <input type="number" id="k" name="k" class="form-control" step="1" min="0" max="300" placeholder="e.g. 50" required value="{{ form_data.k if form_data else '50' }}">
+                                <span class="unit-badge">kg/ha</span>
+                            </div>
+                            <span class="field-subtext">Available potassium from Soil Health Card</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <!-- SECTION 2: ADDITIONAL FARMER CONTEXT (SIH 2026 Requirements) -->
+                <div class="form-section">
+                    <div class="section-title-group">
+                        <span class="section-num-pill context-pill">2</span>
+                        <div>
+                            <h2 class="section-heading">Additional Farmer Context — Not Used by Current ML Model</h2>
+                            <p class="section-desc">
+                                These details are collected for farm context and future advisory improvements. The current crop recommendation model does not use these fields for its prediction.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="context-notice-box">
+                        <span class="notice-icon">ℹ️</span>
+                        <span><strong>Context Notice:</strong> These details are collected for farm context and future advisory improvements. The current crop recommendation model does not use these fields for its prediction.</span>
+                    </div>
+
+                    <div class="fields-grid context-grid">
+                        <!-- Soil Type -->
+                        <div class="form-group">
+                            <label for="soil_type" class="field-label">Soil Type</label>
+                            <select id="soil_type" name="soil_type" class="form-control">
+                                <option value="Loamy" selected>Loamy Soil (Balanced texture)</option>
+                                <option value="Clayey">Clayey Soil (High water retention)</option>
+                                <option value="Sandy">Sandy Soil (High drainage)</option>
+                                <option value="Alluvial">Alluvial Soil (River basin / Fertile)</option>
+                                <option value="Black">Black Cotton Soil (Regur)</option>
+                                <option value="Red">Red Soil</option>
+                                <option value="Laterite">Laterite Soil</option>
+                            </select>
+                            <span class="field-subtext">Physical soil texture</span>
+                        </div>
+
+                        <!-- Water Availability -->
+                        <div class="form-group">
+                            <label for="water_availability" class="field-label">Water Availability</label>
+                            <select id="water_availability" name="water_availability" class="form-control">
+                                <option value="Medium" selected>Medium (Regular seasonal rain)</option>
+                                <option value="High">High (Abundant / Canal irrigation)</option>
+                                <option value="Low">Low (Rainfed / Semi-arid)</option>
+                                <option value="Borewell">Tubewell / Drip Irrigation</option>
+                            </select>
+                            <span class="field-subtext">Farm irrigation access</span>
+                        </div>
+
+                        <!-- Cropping Season -->
+                        <div class="form-group">
+                            <label for="season" class="field-label">Cropping Season</label>
+                            <select id="season" name="season" class="form-control">
+                                <option value="Kharif" selected>Kharif (Monsoon / Autumn)</option>
+                                <option value="Rabi">Rabi (Winter / Spring)</option>
+                                <option value="Zaid">Zaid (Summer)</option>
+                                <option value="Annual">Whole Year / Perennial</option>
+                            </select>
+                            <span class="field-subtext">Target planting window</span>
+                        </div>
+
+                        <!-- Farm Location -->
+                        <div class="form-group">
+                            <label for="location" class="field-label">Farm Location</label>
+                            <input type="text" id="location" name="location" class="form-control" placeholder="e.g. Ahmedabad, Gujarat" value="{{ form_data.location if form_data else 'Ahmedabad, Gujarat' }}">
+                            <span class="field-subtext">District or agro-ecological zone</span>
+                        </div>
+
+                        <!-- Previous Crop -->
+                        <div class="form-group">
+                            <label for="previous_crop" class="field-label">Previous Crop</label>
+                            <select id="previous_crop" name="previous_crop" class="form-control">
+                                <option value="Wheat" selected>Wheat</option>
+                                <option value="Rice">Rice (Paddy)</option>
+                                <option value="Cotton">Cotton</option>
+                                <option value="Legumes">Legumes / Pulses (Nitrogen-fixing)</option>
+                                <option value="Maize">Maize / Corn</option>
+                                <option value="Sugarcane">Sugarcane</option>
+                                <option value="Fallow">Fallow / None</option>
+                            </select>
+                            <span class="field-subtext">For crop rotation awareness</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Container -->
+                <div class="form-error-box" id="form-error-box" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <span id="form-error-message"></span>
+                </div>
+
+                <!-- Submit CTA -->
+                <div class="submit-action-row">
+                    <button type="submit" class="btn btn-primary btn-large btn-recommend" id="btn-recommend">
+                        <span>🌾 Recommend Optimal Crops</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-container" id="crop-loading-container" style="display: none;" aria-live="polite">
+            <div class="loading-spinner"></div>
+            <h3 class="loading-title">Evaluating Agro-Climatic Suitability…</h3>
+            <p class="loading-subtitle">Computing multi-class class probabilities across 22 crop profiles</p>
+            <div class="loading-progress-track">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- RESULTS SECTION -->
+        {% if not result %}
+        <div class="crop-results-container" id="crop-results-container" style="display: none;" aria-live="polite">
+        {% else %}
+        <div class="crop-results-container" id="crop-results-container" aria-live="polite">
+        {% endif %}
+
+            <!-- Result Disclaimer Banner (Demo vs Live) -->
+            <div class="result-mode-alert {% if result and result.is_mock %}mock-alert{% else %}live-alert{% endif %}" id="result-mode-alert">
+                <div class="mode-alert-badge" id="mode-alert-badge">
+                    {% if result and result.is_mock %}SIMULATED DEMO MODE{% else %}LIVE ML INFERENCE{% endif %}
+                </div>
+                <p class="mode-alert-text" id="mode-alert-text">
+                    {{ result.disclaimer if result else 'Model recommendations derived from trained Random Forest multi-class probabilities.' }}
+                </p>
+            </div>
+
+            <!-- Recommendations Grid -->
+            <div class="results-header-row">
+                <h2 class="results-title">🌾 Ranked Crop Recommendations</h2>
+                <span class="results-meta-pill" id="results-meta-pill">Top 3 Varieties</span>
+            </div>
+
+            <div class="recommendations-cards-grid" id="recommendations-cards-grid">
+                {% if result and result.recommendations %}
+                    {% for rec in result.recommendations %}
+                    <div class="rec-card rank-{{ rec.rank }}">
+                        <div class="rec-rank-badge">#{{ rec.rank }}</div>
+                        <div class="rec-crop-info">
+                            <h3 class="rec-crop-name">{{ rec.crop }}</h3>
+                            <div class="rec-suitability-wrapper">
+                                <div class="rec-suitability-header">
+                                    <span class="suitability-label">Suitability Score</span>
+                                    <span class="suitability-value">{{ rec.suitability_percentage }}%</span>
+                                </div>
+                                <div class="rec-meter-track">
+                                    <div class="rec-meter-fill" data-suitability="{{ rec.suitability_percentage }}"></div>
+                                </div>
+                                <span class="suitability-disclaimer">Model probability estimate (not a yield guarantee)</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Agronomic Explanation Card -->
+            <div class="explanation-card" id="explanation-card">
+                <div class="explanation-header">
+                    <span class="explanation-icon">🌱</span>
+                    <h3 class="explanation-title">Agronomic Environmental Rationale</h3>
+                </div>
+                <p class="explanation-text" id="explanation-text">
+                    {{ result.agronomic_explanation if result else '' }}
+                </p>
+            </div>
+
+            <!-- Features Breakdown Accordion (Model Features vs Farmer Context) -->
+            <div class="audit-breakdown-card">
+                <h3 class="audit-title">📋 Input Parameters & Feature Transparency</h3>
+                <div class="audit-columns-grid">
+                    <!-- Column 1: ML Features Used for Prediction -->
+                    <div class="audit-col">
+                        <div class="audit-col-header">
+                            <span class="audit-col-badge badge-ml">ML Inputs (7)</span>
+                            <span class="audit-col-title">ML Features Used for Prediction</span>
+                        </div>
+                        <p class="audit-note">The current model generates recommendations using N, P, K, temperature, humidity, soil pH, and rainfall.</p>
+                        <ul class="audit-list" id="audit-model-features">
+                            {% if result and result.model_features_used %}
+                                {% for k, v in result.model_features_used.items() %}
+                                    <li><strong>{{ k }}:</strong> {{ v }}</li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Column 2: Additional Farmer Context — Not Used by Current ML Model -->
+                    <div class="audit-col">
+                        <div class="audit-col-header">
+                            <span class="audit-col-badge badge-context">Context (5)</span>
+                            <span class="audit-col-title">Additional Farmer Context — Not Used by Current ML Model</span>
+                        </div>
+                        <p class="audit-note">These details are collected for farm context and future advisory improvements. The current crop recommendation model does not use these fields for its prediction.</p>
+                        <ul class="audit-list" id="audit-context-features">
+                            {% if result and result.additional_context_collected %}
+                                {% for k, v in result.additional_context_collected.items() %}
+                                    {% if not k.startswith('_') %}
+                                        <li><strong>{{ k.replace('_', ' ').title() }}:</strong> {{ v or '—' }}</li>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="result-actions">
+                <button type="button" class="btn btn-secondary btn-large" id="btn-recalculate">
+                    <span>🔄 Adjust Parameters</span>
+                </button>
+                <a href="/" class="btn btn-primary btn-large">
+                    <span>🌿 Check Foliar Disease</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/crop_recommendation.js') }}"></script>
+{% endblock %}

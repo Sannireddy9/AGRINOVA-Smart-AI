@@ -1,0 +1,236 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Farmer Assistant (GenAI) — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="assistant-wrapper">
+    <div class="assistant-container">
+
+        <!-- Header Hero -->
+        <header class="assistant-header-hero">
+            <div class="header-content-group">
+                <div class="header-badge-row">
+                    <span class="badge-pill badge-primary">🌾 Smart India Hackathon 2026</span>
+                    <span class="badge badge-live" id="assistant-status-badge">
+                        <span class="badge-dot"></span> Assistant: ACTIVE
+                    </span>
+                    <span class="badge-pill badge-context" id="assistant-mode-badge">{{ context_summary.mode_notice }}</span>
+                    <span class="badge-pill badge-neutral">Zero-IoT Architecture</span>
+                    <span class="badge-pill badge-warning-subtle">Grounded Decision Support</span>
+                </div>
+                <h1 class="page-title">AgriSmart Farmer Assistant</h1>
+                <p class="page-subtitle">
+                    Grounded, explainable, and farmer-friendly AI decision support. Ask about your crop, weather forecasts, irrigation scheduling, plant disease results, or sustainability score.
+                </p>
+            </div>
+        </header>
+
+        <!-- Main Layout: Context Summary Sidebar + Chat Container -->
+        <div class="assistant-layout-grid">
+
+            <!-- Left / Top: Current Farm Context Snapshot -->
+            <aside class="assistant-context-sidebar">
+                <div class="context-card">
+                    <div class="context-card-header">
+                        <span class="context-header-icon">📋</span>
+                        <div class="context-header-text">
+                            <h3 class="context-card-title">Current Farm Context</h3>
+                            <span class="context-card-sub">Active field observations & module signals</span>
+                        </div>
+                        <button type="button" id="btn-refresh-context" class="btn-refresh-context" title="Refresh farm context from active modules" aria-label="Refresh farm context">
+                            <span class="refresh-icon">🔄</span> Refresh
+                        </button>
+                    </div>
+
+                    <div class="context-items-list" id="context-items-list">
+                        <div class="context-item-row">
+                            <span class="c-label">Cultivated Crop</span>
+                            <strong class="c-value" id="ctx-crop">{{ context_summary.crop }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Growth Stage</span>
+                            <strong class="c-value" id="ctx-stage">{{ context_summary.growth_stage }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Soil Moisture</span>
+                            <strong class="c-value" id="ctx-moisture">{{ context_summary.soil_moisture }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Farm Location</span>
+                            <strong class="c-value" id="ctx-location">{{ context_summary.location }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Irrigation System</span>
+                            <strong class="c-value" id="ctx-irrigation">{{ context_summary.irrigation_method }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Water Availability</span>
+                            <strong class="c-value" id="ctx-water-availability">{{ context_summary.water_availability }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Nutrient Practice</span>
+                            <strong class="c-value" id="ctx-nutrient-practice">{{ context_summary.nutrient_practice }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Soil Cover</span>
+                            <strong class="c-value" id="ctx-soil-cover">{{ context_summary.soil_cover }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Sustainability Score</span>
+                            <strong class="c-value" id="ctx-sustainability">{{ context_summary.sustainability_score }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Disease Observation</span>
+                            <strong class="c-value" id="ctx-disease-prediction">{{ context_summary.disease_prediction or 'Not assessed' }}</strong>
+                        </div>
+                        <div class="context-item-row">
+                            <span class="c-label">Recommended Crop</span>
+                            <strong class="c-value" id="ctx-recommended-crop">{{ context_summary.recommended_crop or 'Not computed' }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="context-status-strip">
+                        <div class="status-chip-item">
+                            <span class="chip-label">Weather:</span>
+                            <span class="status-chip {% if context_summary.weather_status == 'LIVE' %}chip-live{% else %}chip-mock{% endif %}" id="chip-weather">
+                                {{ context_summary.weather_status }}
+                            </span>
+                        </div>
+                        <div class="status-chip-item">
+                            <span class="chip-label">Disease AI:</span>
+                            <span class="status-chip {% if context_summary.disease_status == 'LIVE' %}chip-live{% else %}chip-mock{% endif %}" id="chip-disease">
+                                {{ context_summary.disease_status }}
+                            </span>
+                        </div>
+                        <div class="status-chip-item">
+                            <span class="chip-label">Crop Model:</span>
+                            <span class="status-chip {% if context_summary.crop_model_status == 'LIVE' %}chip-live{% else %}chip-mock{% endif %}" id="chip-crop">
+                                {{ context_summary.crop_model_status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="context-card-footer">
+                        <span class="notice-text">ℹ️ Context updates dynamically as you use modules or state observations in chat. Missing fields are never fabricated.</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right / Center: Conversational Stream Area -->
+            <main class="assistant-chat-main">
+                <div class="chat-card">
+
+                    <!-- Quick Prompts Toolbar -->
+                    <div class="quick-prompts-bar">
+                        <span class="quick-prompt-label">💡 Quick questions:</span>
+                        <div class="quick-chips-scroll">
+                            <button type="button" class="btn-prompt-chip" onclick="sendQuickPrompt('Should I irrigate today?')">Should I irrigate today?</button>
+                            <button type="button" class="btn-prompt-chip" onclick="sendQuickPrompt('Explain my sustainability score.')">Explain my sustainability score</button>
+                            <button type="button" class="btn-prompt-chip" onclick="sendQuickPrompt('What does my disease result mean?')">What does my disease result mean?</button>
+                            <button type="button" class="btn-prompt-chip" onclick="sendQuickPrompt('Explain today\'s weather.')">Explain today's weather</button>
+                            <button type="button" class="btn-prompt-chip" onclick="sendQuickPrompt('What should I check before irrigation?')">What to check before watering?</button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages Stream -->
+                    <div class="chat-messages-stream" id="chat-messages-stream" role="log" aria-live="polite">
+                        <!-- Welcome Message from Assistant -->
+                        <div class="chat-message message-assistant">
+                            <div class="message-avatar">🌿</div>
+                            <div class="message-body">
+                                <div class="message-header-line">
+                                    <strong class="sender-name">AgriSmart Assistant</strong>
+                                    <span class="message-time">Just now</span>
+                                    <span class="badge-mini mini-live">GROUNDED</span>
+                                </div>
+                                <div class="message-text">
+                                    <p>Namaste! I am your AgriSmart farming assistant. You can ask me questions about your soil moisture, whether to irrigate, your latest weather forecast, plant disease screening results, or your sustainability score.</p>
+                                    <p>How can I help with your field decisions today?</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Interaction Area: Polished Chat Composer Card -->
+                <div class="chat-input-container chat-composer-card">
+                    <div class="composer-label-row">
+                        <div class="composer-label-col">
+                            <label for="assistant-language" class="composer-field-label">
+                                <span class="label-globe-icon" aria-hidden="true">🌐</span> Language
+                            </label>
+                        </div>
+                        <div class="composer-label-col input-hint-col">
+                            <span class="composer-subtle-hint">Press Enter or click Send to ask</span>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-row">
+                        <!-- Language Selector (Left) -->
+                        <div class="language-select-wrapper">
+                            <select id="assistant-language" class="language-dropdown assistant-language-select" title="Select response language">
+                                <option value="en" selected>English</option>
+                                <option value="hi">हिन्दी (Hindi)</option>
+                                <option value="gu">ગુજરાતી (Gujarati)</option>
+                            </select>
+                            <span class="custom-select-arrow" aria-hidden="true">▾</span>
+                        </div>
+
+                        <!-- Message Input (Center) -->
+                        <div class="input-text-wrapper">
+                            <input
+                                type="text"
+                                id="assistant-input"
+                                class="assistant-text-input"
+                                placeholder="Ask your farming question (e.g., Should I irrigate today?)..."
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <!-- Send Button (Right) -->
+                        <button type="button" id="btn-send-message" class="btn-send-message btn-send" title="Send question">
+                            <svg class="send-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                            <span class="send-btn-text">Send</span>
+                        </button>
+                    </div>
+
+                    <!-- Typing / Thinking Indicator -->
+                    <div class="thinking-indicator" id="thinking-indicator" style="display: none;">
+                        <span class="dot-typing"></span>
+                        <span class="thinking-text">Reviewing farm context and module intelligence...</span>
+                    </div>
+
+                    <!-- Error Message Banner -->
+                    <div class="assistant-error-banner" id="assistant-error-banner" style="display: none;">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text" id="assistant-error-text"></span>
+                    </div>
+                </div>
+
+                <!-- Footer Transparency Note: Redesigned Decision Support Notice -->
+                <div class="assistant-disclaimer-box" role="note" aria-label="Decision Support Notice">
+                    <div class="disclaimer-icon-circle" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </div>
+                    <p class="disclaimer-text">
+                        <strong class="disclaimer-title">Decision Support Notice:</strong> AgriSmart Farmer Assistant provides actionable decision support grounded strictly in available module calculations and farmer observations. It does not invent agricultural parameters, prescribe hazardous chemical formulations, or substitute for certified agronomist inspection.
+                    </p>
+                </div>
+            </main>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/farmer_assistant.js') }}"></script>
+{% endblock %}

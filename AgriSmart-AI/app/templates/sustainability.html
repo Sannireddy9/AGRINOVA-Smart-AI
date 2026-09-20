@@ -1,0 +1,572 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Sustainability Score — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="sustainability-wrapper">
+    <div class="sustainability-container">
+
+        <!-- Header Hero -->
+        <header class="sustainability-header-hero">
+            <div class="header-content-group">
+                <div class="header-badge-row">
+                    <span class="badge-pill badge-primary">🌾 Smart India Hackathon 2026</span>
+                    <span class="badge badge-live" id="sustainability-status-badge">
+                        <span class="badge-dot"></span> Sustainability Score: ACTIVE
+                    </span>
+                    <span class="badge-pill badge-context">Deterministic Index (0–100)</span>
+                    <span class="badge-pill badge-neutral">Zero-IoT Architecture</span>
+                    <span class="badge-pill badge-warning-subtle">Dynamic Weight Renormalization</span>
+                </div>
+                <h1 class="page-title">Farm Sustainability Score</h1>
+                <p class="page-subtitle">
+                    Transparent, multi-dimensional environmental assessment balancing water stewardship, resource conservation, and crop vigor.
+                </p>
+            </div>
+        </header>
+
+        <!-- Freshness / Audit Strip (shown when results present) -->
+        {% if result %}
+        <div class="freshness-bar" id="sustainability-freshness-bar">
+            <div class="freshness-info">
+                <span class="freshness-label">🌱 Crop Context:</span>
+                <strong class="freshness-value">{{ result.farm_inputs.crop }} ({{ result.farm_inputs.growth_stage }})</strong>
+                <span class="freshness-separator">•</span>
+                <span class="freshness-label">Weather Context:</span>
+                {% if result.weather_status == 'LIVE' %}
+                    <span class="freshness-value val-live">Open-Meteo LIVE</span>
+                {% elif result.weather_status == 'DEMO' %}
+                    <span class="freshness-value val-mock">Weather DEMO</span>
+                {% else %}
+                    <span class="freshness-value text-muted">Not Queried (Field-Only)</span>
+                {% endif %}
+                <span class="freshness-separator">•</span>
+                <span class="freshness-label">Completeness:</span>
+                <span class="freshness-value">{{ result.data_status }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form Card: Farm Practice Inputs -->
+        <div class="sustainability-query-card">
+            <form id="sustainability-query-form" method="POST" action="/calculate-sustainability" novalidate>
+                <div class="form-grid-columns">
+
+                    <!-- Column 1: Water & Soil Moisture Stewardship -->
+                    <div class="form-section-col">
+                        <h3 class="section-col-title">💧 Water Management & Field Moisture</h3>
+
+                        <!-- Farm Location (Optional) -->
+                        <div class="form-group">
+                            <label for="location" class="field-label">
+                                Farm Location / District
+                                <span class="badge-optional">Optional</span>
+                            </label>
+                            <div class="input-with-icon">
+                                <span class="input-icon">📍</span>
+                                <input
+                                    type="text"
+                                    id="location"
+                                    name="location"
+                                    class="form-control"
+                                    placeholder="e.g. Pune, Maharashtra (leave blank for field-only evaluation)"
+                                    value="{% if form_data and form_data.location %}{{ form_data.location }}{% endif %}"
+                                >
+                            </div>
+                            <span class="field-subtext">
+                                Optional: If entered, checks near-term forecast for rain opportunities. If left blank, scored purely on field practices without default cities.
+                            </span>
+                            <div class="quick-locations">
+                                <span class="quick-loc-label">Quick fill:</span>
+                                <button type="button" class="btn-chip" onclick="setLoc('Pune, Maharashtra')">Pune</button>
+                                <button type="button" class="btn-chip" onclick="setLoc('Nagpur, Maharashtra')">Nagpur</button>
+                                <button type="button" class="btn-chip" onclick="setLoc('Ahmedabad, Gujarat')">Ahmedabad</button>
+                                <button type="button" class="btn-chip" onclick="setLoc('Ludhiana, Punjab')">Ludhiana</button>
+                            </div>
+                        </div>
+
+                        <!-- Manual Soil Moisture Input -->
+                        <div class="form-group">
+                            <div class="label-with-val">
+                                <label for="soil_moisture" class="field-label">Manual Soil Moisture Estimate (%)</label>
+                                <span class="range-display-badge" id="moisture-display">
+                                    {% if form_data and form_data.soil_moisture is defined %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}45{% endif %}%
+                                </span>
+                            </div>
+                            <div class="moisture-inputs-row">
+                                <input
+                                    type="range"
+                                    id="soil_moisture"
+                                    name="soil_moisture"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value="{% if form_data and form_data.soil_moisture is defined %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}45{% endif %}"
+                                    class="form-range"
+                                    oninput="syncMoistureDisplay(this.value)"
+                                >
+                                <input
+                                    type="number"
+                                    id="soil_moisture_num"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value="{% if form_data and form_data.soil_moisture is defined %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}45{% endif %}"
+                                    class="form-control form-control-sm moisture-num-input"
+                                    oninput="syncMoistureSlider(this.value)"
+                                >
+                            </div>
+                            <span class="field-subtext text-warning-subtle">
+                                ℹ️ Farmer-provided manual estimate — zero physical hardware or IoT sensors required.
+                            </span>
+                        </div>
+
+                        <!-- Irrigation System -->
+                        <div class="form-group">
+                            <label for="irrigation_method" class="field-label">Irrigation Delivery System</label>
+                            <select id="irrigation_method" name="irrigation_method" class="form-control" required>
+                                <option value="Drip" {% if form_data and form_data.irrigation_method == 'Drip' %}selected{% endif %}>Drip Micro-Irrigation (High Efficiency)</option>
+                                <option value="Sprinkler" {% if form_data and form_data.irrigation_method == 'Sprinkler' %}selected{% endif %}>Overhead Sprinkler (Moderate Efficiency)</option>
+                                <option value="Flood" {% if (not form_data) or (form_data and form_data.irrigation_method == 'Flood') %}selected{% endif %}>Surface / Flood (Low Efficiency)</option>
+                                <option value="Rainfed" {% if form_data and form_data.irrigation_method == 'Rainfed' %}selected{% endif %}>Rainfed / Natural Rainfall Only</option>
+                            </select>
+                            <span class="field-subtext">Water delivery infrastructure in use</span>
+                        </div>
+
+                        <!-- Farm Water Availability -->
+                        <div class="form-group">
+                            <label for="water_availability" class="field-label">Regional / Farm Water Availability</label>
+                            <select id="water_availability" name="water_availability" class="form-control">
+                                <option value="Abundant" {% if form_data and form_data.water_availability == 'Abundant' %}selected{% endif %}>Abundant (Perennial canal / high groundwater)</option>
+                                <option value="Moderate" {% if (not form_data) or (form_data and form_data.water_availability == 'Moderate') %}selected{% endif %}>Moderate (Seasonal source / regulated borewell)</option>
+                                <option value="Scarce" {% if form_data and form_data.water_availability == 'Scarce' %}selected{% endif %}>Scarce (Drought-prone / deep groundwater table)</option>
+                            </select>
+                            <span class="field-subtext">Local watershed vulnerability</span>
+                        </div>
+
+                    </div>
+
+                    <!-- Column 2: Resources, Soil Health & Crop Assessment -->
+                    <div class="form-section-col">
+                        <h3 class="section-col-title">🌱 Resource Conservation & Crop Vigor</h3>
+
+                        <div class="fields-subgrid">
+                            <!-- Nutrient Management Practice -->
+                            <div class="form-group">
+                                <label for="nutrient_practice" class="field-label">Nutrient & Soil Input Practice</label>
+                                <select id="nutrient_practice" name="nutrient_practice" class="form-control">
+                                    <option value="Organic" {% if form_data and form_data.nutrient_practice == 'Organic' %}selected{% endif %}>Organic / Biofertilizer / Compost Only (High Stewardship)</option>
+                                    <option value="Integrated" {% if (not form_data) or (form_data and form_data.nutrient_practice == 'Integrated') %}selected{% endif %}>Integrated Nutrient Management (Organic + Synthetic)</option>
+                                    <option value="Moderate_Chemical" {% if form_data and form_data.nutrient_practice == 'Moderate_Chemical' %}selected{% endif %}>Moderate Synthetic Chemical (Split Applications)</option>
+                                    <option value="Intensive_Chemical" {% if form_data and form_data.nutrient_practice in ['Intensive_Chemical', 'Synthetic_Heavy'] %}selected{% endif %}>Intensive Chemical / Heavy Synthetic (Low Stewardship)</option>
+                                </select>
+                                <span class="field-subtext">Soil biology and chemical footprint</span>
+                            </div>
+
+                            <!-- Soil Cover Practice -->
+                            <div class="form-group">
+                                <label for="soil_cover" class="field-label">Soil Cover & Conservation Practice</label>
+                                <select id="soil_cover" name="soil_cover" class="form-control">
+                                    <option value="Cover_Crops" {% if form_data and form_data.soil_cover == 'Cover_Crops' %}selected{% endif %}>Active Cover Crops / Green Manure (+15 pts)</option>
+                                    <option value="Mulch" {% if form_data and form_data.soil_cover in ['Mulch', 'Mulched'] %}selected{% endif %}>Organic / Plastic Mulch Layer (+10 pts)</option>
+                                    <option value="Minimum_Tillage" {% if form_data and form_data.soil_cover == 'Minimum_Tillage' %}selected{% endif %}>Conservation / Minimum Tillage (+5 pts)</option>
+                                    <option value="Bare_Soil" {% if (not form_data) or (form_data and form_data.soil_cover in ['Bare_Soil', 'Bare', 'None']) %}selected{% endif %}>Conventional Tillage / Bare Soil (0 pts)</option>
+                                </select>
+                                <span class="field-subtext">Erosion prevention and moisture conservation</span>
+                            </div>
+
+                            <!-- Crop Health Status (Optional/Renormalizable) -->
+                            <div class="form-group">
+                                <label for="crop_health_status" class="field-label">
+                                    Crop Foliar Health Assessment
+                                    <span class="badge-optional">Optional</span>
+                                </label>
+                                <select id="crop_health_status" name="crop_health_status" class="form-control">
+                                    <option value="Not_Assessed" {% if (not form_data) or (form_data and form_data.crop_health_status in ['Not_Assessed', 'none', 'None']) %}selected{% endif %}>Not Assessed (Exclude & Renormalize Weights)</option>
+                                    <option value="Healthy" {% if form_data and form_data.crop_health_status == 'Healthy' %}selected{% endif %}>Healthy Foliage (Vigorous Canopy — 95 pts)</option>
+                                    <option value="Minor_Stress" {% if form_data and form_data.crop_health_status in ['Minor_Stress', 'Mild_Stress'] %}selected{% endif %}>Minor Stress / Mild Symptoms (75 pts)</option>
+                                    <option value="Disease_Detected" {% if form_data and form_data.crop_health_status in ['Disease_Detected', 'Moderate_Disease'] %}selected{% endif %}>Disease Detected / Active Infection (45 pts)</option>
+                                    <option value="Severe_Damage" {% if form_data and form_data.crop_health_status in ['Severe_Damage', 'Severe_Disease'] %}selected{% endif %}>Severe Blight / Extensive Foliar Damage (25 pts)</option>
+                                </select>
+                                <span class="field-subtext text-info-subtle">
+                                    ℹ️ If Not Assessed, Crop Health weight is excluded and Water + Resource weights dynamically scale to 100%.
+                                </span>
+                            </div>
+
+                            <!-- Crop Selector -->
+                            <div class="form-group">
+                                <label for="crop" class="field-label">Cultivated Crop</label>
+                                <select id="crop" name="crop" class="form-control">
+                                    <option value="Rice (Paddy)" {% if form_data and form_data.crop in ['Rice (Paddy)', 'Rice'] %}selected{% endif %}>Rice (Paddy)</option>
+                                    <option value="Wheat" {% if form_data and form_data.crop == 'Wheat' %}selected{% endif %}>Wheat</option>
+                                    <option value="Maize (Corn)" {% if form_data and form_data.crop in ['Maize (Corn)', 'Maize'] %}selected{% endif %}>Maize (Corn)</option>
+                                    <option value="Cotton" {% if form_data and form_data.crop == 'Cotton' %}selected{% endif %}>Cotton</option>
+                                    <option value="Sugarcane" {% if form_data and form_data.crop == 'Sugarcane' %}selected{% endif %}>Sugarcane</option>
+                                    <option value="Tomato" {% if (not form_data) or (form_data and form_data.crop == 'Tomato') %}selected{% endif %}>Tomato</option>
+                                    <option value="Potato" {% if form_data and form_data.crop == 'Potato' %}selected{% endif %}>Potato</option>
+                                    <option value="Onion" {% if form_data and form_data.crop == 'Onion' %}selected{% endif %}>Onion</option>
+                                    <option value="Soybean" {% if form_data and form_data.crop == 'Soybean' %}selected{% endif %}>Soybean</option>
+                                    <option value="Groundnut" {% if form_data and form_data.crop in ['Groundnut', 'Groundnut (Peanut)'] %}selected{% endif %}>Groundnut</option>
+                                    <option value="Chickpea" {% if form_data and form_data.crop in ['Chickpea', 'Chickpea (Gram)'] %}selected{% endif %}>Chickpea</option>
+                                    <option value="Pigeon Pea" {% if form_data and form_data.crop in ['Pigeon Pea', 'Pigeon Pea (Tur / Arhar)'] %}selected{% endif %}>Pigeon Pea</option>
+                                    <option value="Mustard" {% if form_data and form_data.crop in ['Mustard', 'Mustard (Rape Seed)'] %}selected{% endif %}>Mustard</option>
+                                    <option value="Sorghum" {% if form_data and form_data.crop in ['Sorghum', 'Sorghum (Jowar)'] %}selected{% endif %}>Sorghum</option>
+                                    <option value="Pearl Millet" {% if form_data and form_data.crop in ['Pearl Millet', 'Pearl Millet (Bajra)'] %}selected{% endif %}>Pearl Millet</option>
+                                    <option value="Banana" {% if form_data and form_data.crop == 'Banana' %}selected{% endif %}>Banana</option>
+                                    <option value="Mango" {% if form_data and form_data.crop == 'Mango' %}selected{% endif %}>Mango</option>
+                                    <option value="Other / Not Listed" {% if form_data and form_data.crop in ['Other / Not Listed', 'Other'] %}selected{% endif %}>Other / Not Listed</option>
+                                </select>
+                                <span class="field-subtext text-muted">Agronomic benchmarks derived from FAO Irrigation & Drainage Papers (56, 33) & ICAR.</span>
+                            </div>
+
+                            <!-- Growth Stage -->
+                            <div class="form-group">
+                                <label for="growth_stage" class="field-label">Crop Growth Stage</label>
+                                <select id="growth_stage" name="growth_stage" class="form-control">
+                                    <option value="Vegetative" {% if (not form_data) or (form_data and form_data.growth_stage == 'Vegetative') %}selected{% endif %}>Vegetative Stage</option>
+                                    <option value="Flowering" {% if form_data and form_data.growth_stage == 'Flowering' %}selected{% endif %}>Flowering Stage</option>
+                                    <option value="Fruiting" {% if form_data and form_data.growth_stage == 'Fruiting' %}selected{% endif %}>Fruiting / Grain Fill</option>
+                                    <option value="Maturity" {% if form_data and form_data.growth_stage == 'Maturity' %}selected{% endif %}>Maturity / Ripening</option>
+                                </select>
+                                <span class="field-subtext text-muted">Documented critical stages (e.g., flowering) indicate heightened sensitivity to water stress.</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Box -->
+                <div class="form-error-box" id="sustainability-error-box" {% if error %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
+                    <span class="error-icon">⚠️</span>
+                    <span id="sustainability-error-message">{{ error or "" }}</span>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="submit-action-row">
+                    <button type="submit" class="btn btn-primary btn-large btn-sustainability" id="btn-calculate-sustainability">
+                        <span>📊 Calculate Sustainability Score</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-container" id="sustainability-loading" style="display: none;" aria-live="polite">
+            <div class="loading-spinner"></div>
+            <h3 class="loading-title">Evaluating Multi-Dimensional Sustainability Index…</h3>
+            <p class="loading-subtitle">Applying deterministic scoring rules and dynamic weight renormalization</p>
+            <div class="loading-progress-track">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Dynamic Results Container -->
+        <div id="sustainability-results-container">
+            {% if result %}
+            <div class="sustainability-results-block">
+
+                <!-- Overall Score Hero Banner -->
+                <div class="sustainability-score-hero hero-{{ result.severity }}">
+                    <div class="score-display-column">
+                        <div class="score-radial-wrapper">
+                            <div class="score-number-large">{{ result.score }}</div>
+                            <div class="score-denominator">/ 100</div>
+                        </div>
+                    </div>
+                    <div class="score-details-column">
+                        <div class="hero-top-row">
+                            <span class="advisory-badge-pill pill-{{ result.severity }}">
+                                {{ result.category }}
+                            </span>
+                            {% if result.weights.is_renormalized %}
+                            <span class="badge-pill badge-warning-subtle">
+                                ⚖️ Renormalized (Crop Health Excluded)
+                            </span>
+                            {% else %}
+                            <span class="badge-pill badge-neutral">
+                                ⚖️ Complete Assessment (100% Evaluated)
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h2 class="score-headline">{{ result.description }}</h2>
+                        <div class="score-weights-summary">
+                            <span>Evaluated Weights: </span>
+                            <strong>Water: {{ result.components.water_efficiency.effective_weight_pct|round|int }}%</strong> •
+                            <strong>Resources: {{ result.components.resource_use.effective_weight_pct|round|int }}%</strong>
+                            {% if result.components.crop_health.is_assessed %}
+                            • <strong>Crop Health: {{ result.components.crop_health.effective_weight_pct|round|int }}%</strong>
+                            {% else %}
+                            • <span class="text-muted">Crop Health: Not Assessed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3-Component Score Cards Grid -->
+                <div class="component-cards-grid">
+
+                    <!-- Component 1: Water Efficiency -->
+                    <div class="component-card card-water">
+                        <div class="card-header-row">
+                            <div class="card-title-group">
+                                <span class="card-icon">💧</span>
+                                <h3 class="card-title">Water Efficiency</h3>
+                            </div>
+                            <div class="card-weight-badge">
+                                Weight: {{ result.components.water_efficiency.effective_weight_pct|round|int }}%
+                            </div>
+                        </div>
+                        <div class="card-score-row">
+                            <div class="score-value">{{ result.components.water_efficiency.score }}<span class="score-max">/100</span></div>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill fill-water" data-score="{{ result.components.water_efficiency.score }}" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="breakdown-items-list">
+                            {% for item in result.components.water_efficiency.breakdown %}
+                            <div class="breakdown-item">
+                                <span class="item-icon">✓</span>
+                                <div class="item-text">
+                                    <strong>{{ item.factor }}:</strong> {{ item.detail }}
+                                    <span class="item-points">({{ item.points }} pts)</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Component 2: Resource Use & Conservation -->
+                    <div class="component-card card-resource">
+                        <div class="card-header-row">
+                            <div class="card-title-group">
+                                <span class="card-icon">🌱</span>
+                                <h3 class="card-title">Resource Use</h3>
+                            </div>
+                            <div class="card-weight-badge">
+                                Weight: {{ result.components.resource_use.effective_weight_pct|round|int }}%
+                            </div>
+                        </div>
+                        <div class="card-score-row">
+                            <div class="score-value">{{ result.components.resource_use.score }}<span class="score-max">/100</span></div>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill fill-resource" data-score="{{ result.components.resource_use.score }}" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="breakdown-items-list">
+                            {% for item in result.components.resource_use.breakdown %}
+                            <div class="breakdown-item">
+                                <span class="item-icon">✓</span>
+                                <div class="item-text">
+                                    <strong>{{ item.factor }}:</strong> {{ item.detail }}
+                                    <span class="item-points">({{ item.points }} pts)</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Component 3: Crop Health -->
+                    <div class="component-card card-health">
+                        <div class="card-header-row">
+                            <div class="card-title-group">
+                                <span class="card-icon">🌿</span>
+                                <h3 class="card-title">Crop Foliar Health</h3>
+                            </div>
+                            <div class="card-weight-badge">
+                                {% if result.components.crop_health.is_assessed %}
+                                Weight: {{ result.components.crop_health.effective_weight_pct|round|int }}%
+                                {% else %}
+                                Not Assessed (0%)
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-score-row">
+                            {% if result.components.crop_health.is_assessed %}
+                            <div class="score-value">{{ result.components.crop_health.score }}<span class="score-max">/100</span></div>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill fill-health" data-score="{{ result.components.crop_health.score }}" style="width: 0%;"></div>
+                            </div>
+                            {% else %}
+                            <div class="score-value score-unassessed">N/A</div>
+                            <div class="score-bar-track">
+                                <div class="score-bar-fill fill-unassessed" style="width: 0%;"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="breakdown-items-list">
+                            {% if result.components.crop_health.is_assessed %}
+                                {% for item in result.components.crop_health.breakdown %}
+                                <div class="breakdown-item">
+                                    <span class="item-icon">✓</span>
+                                    <div class="item-text">
+                                        <strong>{{ item.factor }}:</strong> {{ item.detail }}
+                                        <span class="item-points">({{ item.points }} pts)</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="breakdown-item text-muted">
+                                    <span class="item-icon">ℹ️</span>
+                                    <div class="item-text">
+                                        <em>No foliar health observation provided. To prevent penalizing your score, its 30% weight was dynamically reallocated to Water Efficiency and Resource Use.</em>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Crop-Specific Agronomic & Water Context Card -->
+                {% if result.crop_sustainability_context %}
+                <div class="crop-context-card">
+                    <div class="crop-context-header">
+                        <div class="crop-context-title-group">
+                            <span class="crop-context-icon">🌾</span>
+                            <div>
+                                <h3 class="crop-context-title">Crop-Specific Agronomic & Water Context</h3>
+                                <span class="crop-context-subtitle">Empirical benchmarks from FAO Irrigation & Drainage Papers (56, 33) & ICAR</span>
+                            </div>
+                        </div>
+                        <div class="crop-status-badge">
+                            {% if result.crop_sustainability_context.is_available %}
+                            <span class="badge-pill badge-primary">FAO DATA AVAILABLE</span>
+                            {% else %}
+                            <span class="badge-pill badge-neutral">CROP NOT IN DATABASE</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="crop-context-grid">
+                        <div class="crop-context-item">
+                            <span class="context-label">Cultivated Crop</span>
+                            <span class="context-value">
+                                <strong>{{ result.crop_sustainability_context.crop_name }}</strong>
+                                {% if result.crop_sustainability_context.scientific_name and result.crop_sustainability_context.scientific_name != 'N/A' %}
+                                <em>({{ result.crop_sustainability_context.scientific_name }})</em>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="crop-context-item">
+                            <span class="context-label">Growth Stage</span>
+                            <span class="context-value">
+                                <strong>{{ result.crop_sustainability_context.growth_stage }}</strong>
+                                {% if result.crop_sustainability_context.is_critical_stage_active %}
+                                <span class="badge-critical-stage">⚠️ Documented Critical Stage</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="crop-context-item">
+                            <span class="context-label">Source Citation</span>
+                            <span class="context-value">{{ result.crop_sustainability_context.source_reference }}</span>
+                        </div>
+                        <div class="crop-context-item">
+                            <span class="context-label">Crop Water Context (Seasonal mm)</span>
+                            <span class="context-value">
+                                {{ result.crop_sustainability_context.seasonal_water_need_mm }}
+                                {% if result.crop_sustainability_context.is_available %}
+                                <span class="derived-badge">AgriSmart derived category: {{ result.crop_sustainability_context.agrismart_water_need_category }}</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="crop-context-item">
+                            <span class="context-label">Depletion Fraction (p)</span>
+                            <span class="context-value">
+                                {% if result.crop_sustainability_context.fao_depletion_fraction_p is not none and result.crop_sustainability_context.fao_depletion_fraction_p > 0 %}
+                                <strong>{{ "%.2f"|format(result.crop_sustainability_context.fao_depletion_fraction_p) }}</strong>
+                                <span class="context-hint">(FAO 56 Table 22: Fraction of TAW depletable before stress begins)</span>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="crop-context-item full-width">
+                            <span class="context-label">Agronomic Assessment</span>
+                            <span class="context-value">{{ result.crop_sustainability_context.growth_stage_information }}</span>
+                        </div>
+                    </div>
+                    <div class="crop-context-footer">
+                        <span class="scoring-rule-tag">AgriSmart Project-Defined Scoring Rules</span>
+                        <p class="scoring-rule-note">
+                            {{ result.crop_sustainability_context.scoring_basis_note }}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Section D: Why This Score? (Step-by-step arithmetic box) -->
+                <div class="why-score-box">
+                    <div class="why-box-header">
+                        <span class="why-icon">📐</span>
+                        <span class="why-title">TRANSPARENT ARITHMETIC CALCULATION (ZERO BLACK-BOX)</span>
+                    </div>
+                    <div class="calc-expression-display">
+                        <code>{{ result.calculation }}</code>
+                    </div>
+                    <p class="calc-explanation">
+                        {% if result.weights.is_renormalized %}
+                        <strong>Weight Renormalization in Effect:</strong> Because Crop Health was not assessed, the evaluated weight sum is {{ (result.weights.total_evaluated_weight * 100)|round|int }}%.
+                        The raw weighted score ({{ result.components.water_efficiency.score }} × 0.40 + {{ result.components.resource_use.score }} × 0.30) is divided by {{ result.weights.total_evaluated_weight }} to renormalize the final score onto a standard 0–100 scale without fabricating unobserved data.
+                        {% else %}
+                        <strong>Standard 3-Component Evaluation:</strong> All three sustainability dimensions were assessed. The final score is the direct weighted sum:
+                        Water Efficiency (40%) + Resource Use (30%) + Crop Health (30%) = 100%.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Section E: Actionable Sustainability Recommendations -->
+                <div class="sustainability-recommendations-card">
+                    <div class="recommendations-header">
+                        <span class="rec-icon">🎯</span>
+                        <h3 class="rec-title">Targeted Agronomic Improvements</h3>
+                    </div>
+                    <div class="recommendations-list">
+                        {% for rec in result.recommendations %}
+                        <div class="recommendation-item priority-{{ rec.priority|lower }}">
+                            <div class="rec-header-line">
+                                <span class="rec-badge badge-priority-{{ rec.priority|lower }}">{{ rec.priority }} Priority</span>
+                                <span class="rec-category-tag">{{ rec.category }}</span>
+                                <h4 class="rec-item-title">{{ rec.title }}</h4>
+                            </div>
+                            <p class="rec-action-text"><strong>Action:</strong> {{ rec.action }}</p>
+                            <p class="rec-rationale-text"><strong>Why:</strong> {{ rec.why or rec.rationale }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Section F: Transparency & Methodology Notice -->
+                <div class="methodology-card">
+                    <div class="methodology-icon">ℹ️</div>
+                    <div class="methodology-body">
+                        <h4 class="methodology-title">Sustainability Index Methodology & Zero-IoT Disclosure</h4>
+                        <p>
+                            <strong>Advisory Decision-Support Index:</strong>
+                            {{ result.disclaimer }}
+                        </p>
+                        <p>
+                            <strong>Strict Zero-IoT Architecture:</strong>
+                            All moisture estimates and field practices are farmer-reported observations. AgriSmart AI does not require, simulate, or pretend to interface with IoT telemetry or physical soil probes.
+                        </p>
+                        <p>
+                            <strong>Zero Unsupported Claims:</strong>
+                            This system provides relative agronomic ranking and actionable guidance. It does not compute unverified carbon credits, liters of water saved, or absolute greenhouse gas emission reductions.
+                        </p>
+                    </div>
+                </div>
+                <script>
+                    document.querySelectorAll('.score-bar-fill[data-score]').forEach(function(el) {
+                        var s = el.getAttribute('data-score');
+                        if (s !== null && s !== '') el.style.width = s + '%';
+                    });
+                </script>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/sustainability.js') }}"></script>
+{% endblock %}

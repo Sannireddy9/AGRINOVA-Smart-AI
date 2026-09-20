@@ -1,0 +1,384 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Smart Irrigation Advisor — AgriSmart AI{% endblock %}
+
+{% block content %}
+<div class="irrigation-wrapper">
+    <div class="irrigation-container">
+
+        <!-- Top Demo Mode Banner (shown if demo/fallback is active) -->
+        {% if result and result.is_mock %}
+        <div class="demo-mode-banner" id="irrigation-demo-banner" role="alert">
+            <div class="banner-content">
+                <span class="banner-icon">⚠️</span>
+                <div class="banner-text">
+                    <strong>DEMO WEATHER — IRRIGATION ADVISORY IS BASED ON SIMULATED WEATHER</strong>
+                    <span>
+                        Live meteorological API unavailable: <em>{{ result.error_reason or "Simulated weather data active" }}</em>.
+                        Displaying simulated forecast and heuristic advisory for demonstration.
+                    </span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-white" id="btn-retry-irrigation" onclick="retryLiveIrrigation()">
+                    🔄 Retry Live Weather
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Header Hero -->
+        <header class="irrigation-header-hero">
+            <div class="header-content-group">
+                <div class="header-badge-row">
+                    <span class="badge-pill badge-primary">🌾 Smart India Hackathon 2026</span>
+                    {% if result and result.is_mock %}
+                    <span class="badge badge-mock" id="irrigation-status-badge">
+                        <span class="badge-dot"></span> Irrigation Advisor: DEMO
+                    </span>
+                    {% else %}
+                    <span class="badge badge-live" id="irrigation-status-badge">
+                        <span class="badge-dot"></span> Irrigation Advisor: LIVE
+                    </span>
+                    {% endif %}
+                    <span class="badge-pill badge-context">Deterministic Rule-Based</span>
+                    <span class="badge-pill badge-neutral">Zero-IoT Architecture</span>
+                </div>
+                <h1 class="page-title">Smart Irrigation Advisor</h1>
+                <p class="page-subtitle">
+                    Weather-aware irrigation guidance using manual field moisture, crop stage, and forecast conditions.
+                </p>
+            </div>
+        </header>
+
+        <!-- Freshness Strip -->
+        {% if result %}
+        <div class="freshness-bar" id="irrigation-freshness-bar">
+            <div class="freshness-info">
+                <span class="freshness-label">📍 Target Farm:</span>
+                <strong class="freshness-value" id="display-target-location">
+                    {{ result.location }}
+                </strong>
+                <span class="freshness-separator">•</span>
+                <span class="freshness-label">Weather Source:</span>
+                <span class="freshness-value val-live">Open-Meteo API</span>
+                {% if result.retrieved_at %}
+                <span class="freshness-separator">•</span>
+                <span class="freshness-label">Updated:</span>
+                <span class="freshness-value" id="retrieved-timestamp">{{ result.retrieved_at }}</span>
+                {% endif %}
+            </div>
+            <div class="freshness-action">
+                <button type="button" class="btn-outline-refresh" id="btn-refresh-irrigation" onclick="forceRefreshIrrigation()">
+                    <span>↻ Refresh Weather</span>
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Section A: Farm Context Input Form -->
+        <div class="irrigation-query-card">
+            <form id="irrigation-query-form" method="POST" action="/calculate-irrigation" novalidate>
+                <div class="form-grid-columns">
+
+                    <!-- Column 1: Location & Soil Moisture -->
+                    <div class="form-section-col">
+                        <h3 class="section-col-title">📍 Farm Location & Soil Moisture</h3>
+
+                        <!-- Location Field -->
+                        <div class="form-group">
+                            <label for="location" class="field-label">Farm Location / District</label>
+                            <div class="input-with-icon">
+                                <span class="input-icon">📍</span>
+                                <input
+                                    type="text"
+                                    id="location"
+                                    name="location"
+                                    class="form-control"
+                                    placeholder="e.g. Pune, Maharashtra or Nagpur, Gujarat"
+                                    value="{% if form_data and form_data.location %}{{ form_data.location }}{% endif %}"
+                                    required
+                                >
+                            </div>
+                            <div class="quick-locations">
+                                <span class="quick-loc-label">Quick select:</span>
+                                <button type="button" class="btn-chip" onclick="setLocation('Pune, Maharashtra')">Pune</button>
+                                <button type="button" class="btn-chip" onclick="setLocation('Nagpur, Maharashtra')">Nagpur</button>
+                                <button type="button" class="btn-chip" onclick="setLocation('Ahmedabad, Gujarat')">Ahmedabad</button>
+                                <button type="button" class="btn-chip" onclick="setLocation('Ludhiana, Punjab')">Ludhiana</button>
+                                <button type="button" class="btn-chip" onclick="setLocation('Varanasi, Uttar Pradesh')">Varanasi</button>
+                            </div>
+                        </div>
+
+                        <!-- Manual Soil Moisture Estimate -->
+                        <div class="form-group">
+                            <div class="label-with-val">
+                                <label for="soil_moisture" class="field-label">Manual Soil Moisture Estimate (%)</label>
+                                <span class="range-display-badge" id="moisture-display">
+                                    {% if form_data %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}35{% endif %}%
+                                </span>
+                            </div>
+                            <div class="moisture-inputs-row">
+                                <input
+                                    type="range"
+                                    id="soil_moisture"
+                                    name="soil_moisture"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value="{% if form_data %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}35{% endif %}"
+                                    class="form-range"
+                                    oninput="syncMoistureDisplay(this.value)"
+                                >
+                                <input
+                                    type="number"
+                                    id="soil_moisture_num"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value="{% if form_data %}{{ (form_data.soil_moisture|float)|round|int }}{% else %}35{% endif %}"
+                                    class="form-control form-control-sm moisture-num-input"
+                                    oninput="syncMoistureSlider(this.value)"
+                                >
+                            </div>
+                            <span class="field-subtext text-warning-subtle">
+                                ℹ️ Farmer-provided estimate — not measured by an IoT sensor.
+                            </span>
+                            <div class="threshold-indicators-strip">
+                                <span class="indicator-chip chip-critical">&le; 25%: Critical Low</span>
+                                <span class="indicator-chip chip-depleted">26–35%: Depleted</span>
+                                <span class="indicator-chip chip-adequate">&gt; 35%: Adequate</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Crop, Stage & Delivery System -->
+                    <div class="form-section-col">
+                        <h3 class="section-col-title">🌱 Crop Phenology & Irrigation System</h3>
+
+                        <div class="fields-subgrid">
+                            <!-- Crop Selector -->
+                            <div class="form-group">
+                                <label for="crop" class="field-label">Crop Type</label>
+                                <select id="crop" name="crop" class="form-control">
+                                    <option value="Tomato" {% if form_data and form_data.crop == 'Tomato' %}selected{% endif %}>Tomato</option>
+                                    <option value="Potato" {% if form_data and form_data.crop == 'Potato' %}selected{% endif %}>Potato</option>
+                                    <option value="Rice" {% if form_data and form_data.crop == 'Rice' %}selected{% endif %}>Rice (Paddy)</option>
+                                    <option value="Wheat" {% if form_data and form_data.crop == 'Wheat' %}selected{% endif %}>Wheat</option>
+                                    <option value="Maize" {% if form_data and form_data.crop == 'Maize' %}selected{% endif %}>Maize (Corn)</option>
+                                    <option value="Cotton" {% if form_data and form_data.crop == 'Cotton' %}selected{% endif %}>Cotton</option>
+                                    <option value="Sugarcane" {% if form_data and form_data.crop == 'Sugarcane' %}selected{% endif %}>Sugarcane</option>
+                                </select>
+                                <span class="field-subtext">Contextual agronomic sensitivity</span>
+                            </div>
+
+                            <!-- Growth Stage Selector -->
+                            <div class="form-group">
+                                <label for="growth_stage" class="field-label">Growth Stage</label>
+                                <select id="growth_stage" name="growth_stage" class="form-control">
+                                    <option value="Vegetative" {% if form_data and form_data.growth_stage == 'Vegetative' %}selected{% endif %}>Vegetative Canopy</option>
+                                    <option value="Flowering" {% if form_data and form_data.growth_stage == 'Flowering' %}selected{% endif %}>Flowering / Blossom</option>
+                                    <option value="Fruiting" {% if form_data and form_data.growth_stage == 'Fruiting' %}selected{% endif %}>Fruiting / Grain Fill</option>
+                                    <option value="Maturity" {% if form_data and form_data.growth_stage == 'Maturity' %}selected{% endif %}>Maturity / Ripening</option>
+                                </select>
+                                <span class="field-subtext">Water stress critical window</span>
+                            </div>
+
+                            <!-- Soil Type Selector -->
+                            <div class="form-group">
+                                <label for="soil_type" class="field-label">Soil Type</label>
+                                <select id="soil_type" name="soil_type" class="form-control">
+                                    <option value="Loamy" {% if form_data and form_data.soil_type == 'Loamy' %}selected{% endif %}>Loamy Soil</option>
+                                    <option value="Clay" {% if form_data and form_data.soil_type == 'Clay' %}selected{% endif %}>Clay Soil (Heavy)</option>
+                                    <option value="Sandy" {% if form_data and form_data.soil_type == 'Sandy' %}selected{% endif %}>Sandy Soil (Light)</option>
+                                    <option value="Black Cotton" {% if form_data and form_data.soil_type == 'Black Cotton' %}selected{% endif %}>Black Cotton (Vertisol)</option>
+                                </select>
+                                <span class="field-subtext">Water retention & drainage</span>
+                            </div>
+
+                            <!-- Irrigation Delivery System -->
+                            <div class="form-group">
+                                <label for="irrigation_method" class="field-label">Irrigation System</label>
+                                <select id="irrigation_method" name="irrigation_method" class="form-control">
+                                    <option value="Drip" {% if form_data and form_data.irrigation_method == 'Drip' %}selected{% endif %}>Drip Micro-Irrigation</option>
+                                    <option value="Sprinkler" {% if form_data and form_data.irrigation_method == 'Sprinkler' %}selected{% endif %}>Overhead Sprinkler</option>
+                                    <option value="Flood" {% if form_data and form_data.irrigation_method == 'Flood' %}selected{% endif %}>Surface / Flood</option>
+                                    <option value="Rainfed" {% if form_data and form_data.irrigation_method == 'Rainfed' %}selected{% endif %}>Rainfed (No Irrigation)</option>
+                                </select>
+                                <span class="field-subtext">Application method context</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Box -->
+                <div class="form-error-box" id="irrigation-error-box" {% if error %}style="display: flex;"{% else %}style="display: none;"{% endif %}>
+                    <span class="error-icon">⚠️</span>
+                    <span id="irrigation-error-message">{{ error or "" }}</span>
+                </div>
+
+                <!-- Submit CTA -->
+                <div class="submit-action-row">
+                    <button type="submit" class="btn btn-primary btn-large btn-irrigation" id="btn-calculate-irrigation">
+                        <span>⚡ Calculate Smart Irrigation Advisory</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-container" id="irrigation-loading" style="display: none;" aria-live="polite">
+            <div class="loading-spinner"></div>
+            <h3 class="loading-title">Evaluating Weather & Soil Moisture Balance…</h3>
+            <p class="loading-subtitle">Integrating Open-Meteo precipitation forecast with field observations</p>
+            <div class="loading-progress-track">
+                <div class="loading-progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Dynamic Results Container -->
+        <div id="irrigation-results-container">
+            {% if result %}
+            <div class="irrigation-results-block">
+
+                <!-- Advance Notice Banner (if future rain detected in days 3-6) -->
+                {% if result.future_rain_notice %}
+                <div class="future-rain-notice-box">
+                    <span class="notice-icon">📢</span>
+                    <span class="notice-text"><strong>Advance Notice (Planning Only):</strong> {{ result.future_rain_notice.warning }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Section C: Main Recommendation Hero Card -->
+                <div class="irrigation-card-hero advisory-{{ result.recommendation.severity }}">
+                    <div class="hero-top-row">
+                        <div class="hero-tag-group">
+                            <span class="hero-type-tag">💧 Irrigation Action Advisory</span>
+                            <span class="advisory-badge-pill pill-{{ result.recommendation.severity }}">
+                                {{ result.recommendation.badge_text }}
+                            </span>
+                        </div>
+                        <div class="decision-basis-chip chip-basis-{{ result.recommendation.decision_basis|lower }}">
+                            Decision Basis: <strong>{{ result.recommendation.decision_basis }}</strong>
+                        </div>
+                    </div>
+
+                    <h2 class="advisory-headline">{{ result.recommendation.headline }}</h2>
+                    <p class="advisory-reason">{{ result.recommendation.reason }}</p>
+
+                    <div class="action-timeline-row">
+                        <span class="timeline-icon">⏱️</span>
+                        <span class="timeline-label">Action Window:</span>
+                        <span class="timeline-value"><strong>{{ result.recommendation.timeline }}</strong></span>
+                    </div>
+
+                    <!-- Metrics Chip Row -->
+                    <div class="metrics-chip-row">
+                        <span class="metric-chip">Manual Moisture: <strong>{{ result.inputs.soil_moisture|round|int }}%</strong></span>
+                        <span class="metric-chip">Near-term Rain Prob: <strong>{{ result.inputs.rain_probability|round|int }}%</strong></span>
+                        <span class="metric-chip">Expected Rain: <strong>{{ result.inputs.expected_rainfall }} mm</strong></span>
+                        <span class="metric-chip">Temperature: <strong>{{ result.inputs.temperature }}°C</strong></span>
+                    </div>
+                </div>
+
+                <!-- Section D: Why This Recommendation? -->
+                <div class="why-recommendation-box">
+                    <div class="why-box-header">
+                        <span class="why-icon">🔍</span>
+                        <span class="why-title">WHY THIS RECOMMENDATION?</span>
+                    </div>
+                    <ul class="why-inputs-list">
+                        {% for inp in result.why_recommendation.inputs_evaluated %}
+                        <li><span class="why-check">✓</span> {{ inp }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="why-rule-triggered">
+                        <strong>Rule Triggered:</strong> {{ result.why_recommendation.rule_triggered }}
+                    </div>
+                    <p class="why-explanation-text">
+                        {{ result.why_recommendation.explanation }}
+                    </p>
+                </div>
+
+                <!-- Section E: Crop, Stage & Method Context Cards Grid -->
+                <div class="context-cards-grid">
+                    <!-- Crop & Growth Stage Card -->
+                    <div class="context-detail-card">
+                        <h4 class="context-card-title">🌱 Crop Phenological Sensitivity</h4>
+                        <p class="context-crop-name"><strong>{{ result.crop_stage_context.crop }}</strong> ({{ result.crop_stage_context.growth_stage }} Stage)</p>
+                        <p class="context-body-text">{{ result.crop_stage_context.stage_guidance }}</p>
+                        <p class="context-body-text sub-note">{{ result.crop_stage_context.crop_guidance }}</p>
+                    </div>
+
+                    <!-- Irrigation Delivery Method Card -->
+                    <div class="context-detail-card">
+                        <h4 class="context-card-title">⚙️ Delivery Method Context</h4>
+                        <p class="context-crop-name"><strong>{{ result.irrigation_method_context.method }} System</strong></p>
+                        <p class="context-body-text">{{ result.irrigation_method_context.guidance }}</p>
+                        <div class="method-reminder-note">
+                            ℹ️ Note: Method descriptions provide operational context and do not assume precise numerical efficiency coefficients.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section F: Weather Summary Strip -->
+                <div class="weather-summary-strip">
+                    <div class="weather-summary-header">
+                        <span class="summary-icon">⛅</span>
+                        <span class="summary-label">Current & Near-Term Meteorological Context (Open-Meteo):</span>
+                    </div>
+                    <div class="weather-chips-list">
+                        <span class="w-chip">{{ result.weather_summary.icon }} {{ result.weather_summary.temperature }}°C (Feels {{ result.weather_summary.apparent_temperature }}°C)</span>
+                        <span class="w-chip">💧 {{ result.weather_summary.relative_humidity|round|int }}% Humidity</span>
+                        <span class="w-chip">💨 {{ result.weather_summary.wind_speed }} km/h Wind</span>
+                        <span class="w-chip">🌧️ {{ result.weather_summary.near_term_rain_prob_max|round|int }}% Max Rain Prob</span>
+                        <span class="w-chip">☔ {{ result.weather_summary.near_term_rain_sum_mm }} mm Expected Rain</span>
+                    </div>
+                </div>
+
+                <!-- Section G: Water-Saving Logic -->
+                <div class="water-saving-box">
+                    <div class="water-saving-header">
+                        <span class="water-icon">💧</span>
+                        <h4 class="water-title">WATER-SAVING LOGIC</h4>
+                    </div>
+                    <p class="water-text">
+                        {{ result.water_saving_logic }}
+                        By aligning scheduled irrigation with forecast rain events and verified manual soil moisture,
+                        farmers avoid wasteful runoff, root-zone saturation, and nutrient leaching.
+                    </p>
+                </div>
+
+                <!-- Section H: Transparency & Methodology Notice -->
+                <div class="methodology-card">
+                    <div class="methodology-icon">ℹ️</div>
+                    <div class="methodology-body">
+                        <h4 class="methodology-title">Rule-Based Decision Support Transparency & Heuristics Notice</h4>
+                        <p>
+                            <strong>Deterministic Heuristics (Not Machine Learning):</strong>
+                            This module evaluates agrometeorological rules in a documented priority hierarchy (A through E).
+                            Configurable thresholds (Critical: 25%, Depleted: 35%, Adequate: 65%) are heuristics for decision
+                            support. Actual irrigation depends on crop variety, soil profile, root depth, climate, and local practice.
+                        </p>
+                        <p>
+                            <strong>Zero-IoT Architecture:</strong>
+                            Soil moisture is purely a farmer-provided manual observation. No physical hardware sensors, ESP32 microcontrollers,
+                            or telemetry devices are required or simulated.
+                        </p>
+                        <p>
+                            <strong>Weather Provider & Refresh:</strong>
+                            Meteorological conditions are retrieved from <a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener">Open-Meteo</a>
+                            and normalized through AgriSmart AI's weather intelligence layer.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/irrigation.js') }}"></script>
+{% endblock %}

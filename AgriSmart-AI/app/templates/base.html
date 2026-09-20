@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AgriSmart AI — Intelligent Agriculture for a Sustainable Future. AI-powered crop disease detection and farmer decision support platform for SIH 2026.">
+    <title>{% block title %}AgriSmart AI — Intelligent Agriculture{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-container">
+            <!-- Brand Logo (Left: ~160px) -->
+            <a href="/" class="brand-logo" title="AgriSmart AI Home">
+                <span class="logo-icon">🌿</span>
+                <span class="brand-name">AgriSmart AI</span>
+            </a>
+
+            <!-- Mobile Hamburger Toggle -->
+            <button class="nav-toggle-btn" id="nav-toggle-btn" type="button" aria-label="Toggle navigation menu" aria-expanded="false">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
+
+            <!-- Navigation Links (Center) -->
+            <nav class="nav-links" id="nav-links">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}" title="Platform Home & Overview">Home</a>
+                <a href="/disease" class="nav-link {% if request.path == '/disease' %}active{% endif %}" title="Crop Disease Detection">Disease Detection</a>
+                <a href="/crop-recommendation" class="nav-link {% if request.path == '/crop-recommendation' %}active{% endif %}" title="Crop Recommendation">Crop Recommendation</a>
+                <a href="/weather" class="nav-link {% if request.path in ['/weather', '/weather-intelligence'] %}active{% endif %}" title="Weather Intelligence">Weather</a>
+                <a href="/irrigation" class="nav-link {% if request.path in ['/irrigation', '/smart-irrigation'] %}active{% endif %}" title="Smart Irrigation Advisor">Smart Irrigation</a>
+                <a href="/sustainability" class="nav-link {% if request.path in ['/sustainability', '/sustainability-score'] %}active{% endif %}" title="Farm Sustainability Score">Sustainability</a>
+                <a href="/farmer-assistant" class="nav-link {% if request.path in ['/farmer-assistant', '/assistant'] %}active{% endif %}" title="Farmer AI Assistant">Farmer Assistant</a>
+
+                <!-- More Dropdown -->
+                <div class="nav-dropdown" id="nav-more-dropdown">
+                    <button type="button" class="nav-link nav-dropdown-btn" id="more-dropdown-btn" aria-expanded="false">
+                        More <span class="dropdown-chevron">▾</span>
+                    </button>
+                    <div class="nav-dropdown-menu" id="more-dropdown-menu">
+                        <a href="/#future-modules" class="dropdown-item">Planned Modules</a>
+                        <a href="/#about-section" class="dropdown-item">About Platform</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <div class="brand-logo">
+                        <span class="logo-icon">🌿</span>
+                        <span class="brand-name">AgriSmart AI</span>
+                    </div>
+                    <p class="footer-tagline">Intelligent Agriculture for a Sustainable Future</p>
+                    <p class="footer-subtext">Empowering farmers with instant computer-vision foliar diagnostics, crop recommendation, and sustainable advisory tools.</p>
+                </div>
+                <div class="footer-links-col">
+                    <h4 class="footer-heading">Platform Modules</h4>
+                    <ul>
+                        <li><a href="/">Crop Disease Detection</a></li>
+                        <li><a href="/crop-recommendation">Crop Recommendation (ML Active)</a></li>
+                        <li><a href="/weather">Weather Intelligence (Open-Meteo)</a></li>
+                        <li><a href="/irrigation">Smart Irrigation Advisor</a></li>
+                        <li><a href="/sustainability">Sustainability Score</a></li>
+                        <li><a href="/farmer-assistant">Farmer AI Assistant</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links-col">
+                    <h4 class="footer-heading">Hackathon Details</h4>
+                    <ul>
+                        <li><span class="footer-info-item">Smart India Hackathon 2026</span></li>
+                        <li><span class="footer-info-item">Dataset: PlantVillage Development</span></li>
+                        <li><span class="footer-info-item">Architecture: Pre-trained ResNet-50</span></li>
+                        <li><span class="footer-info-item">Dynamic Class Discovery</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AgriSmart AI Team. Built for Smart India Hackathon. Precautionary guidance is for educational demonstration.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Global Navbar Interactivity
+        document.addEventListener('DOMContentLoaded', () => {
+            const navbar = document.getElementById('navbar');
+            const toggleBtn = document.getElementById('nav-toggle-btn');
+            const moreDropdown = document.getElementById('nav-more-dropdown');
+            const moreToggle = document.getElementById('more-dropdown-btn');
+
+            if (toggleBtn && navbar) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = navbar.classList.toggle('nav-open');
+                    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
+            if (moreToggle && moreDropdown) {
+                moreToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = moreDropdown.classList.toggle('is-open');
+                    moreToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (moreDropdown && !moreDropdown.contains(e.target)) {
+                    moreDropdown.classList.remove('is-open');
+                    if (moreToggle) moreToggle.setAttribute('aria-expanded', 'false');
+                }
+                if (navbar && navbar.classList.contains('nav-open') && !navbar.contains(e.target)) {
+                    navbar.classList.remove('nav-open');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (moreDropdown) moreDropdown.classList.remove('is-open');
+                    if (navbar) navbar.classList.remove('nav-open');
+                    if (moreToggle) moreToggle.setAttribute('aria-expanded', 'false');
+                    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
