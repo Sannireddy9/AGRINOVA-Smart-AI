@@ -1,5 +1,5 @@
 [project]
-name = "agrismart-ai"
+name = "agrinova smart-ai"
 version = "0.1.0"
 description = "AI-Powered Smart Agriculture Platform"
 requires-python = ">=3.10"
