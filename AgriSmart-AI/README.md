@@ -1,9 +1,6 @@
-﻿# AgriSmart AI — Intelligent Agriculture for a Sustainable Future
+﻿# AgriNova Smart AI — Intelligent Agriculture for a Sustainable Future
 
-> **Smart India Hackathon (SIH) 2026 Submission Repository**
-> *Track: Agriculture, Food Security & Rural Development*
 
----
 
 ## 📌 Problem & Solution Overview
 
@@ -11,7 +8,7 @@
 Smallholder farmers in India face compounding agronomic challenges: unpredictable weather anomalies due to climate change, sudden foliar disease outbreaks that devastate harvests, uncalibrated water usage leading to aquifer depletion or root rot, and soil degradation from imbalanced chemical fertilization. Traditional agricultural advisory systems often require expensive IoT hardware, provide opaque recommendations, or suffer from long turnaround times.
 
 ### The AgriSmart AI Solution
-**AgriSmart AI** is a transparent, farmer-centric agronomy platform that delivers actionable, explainable, and accessible intelligence without requiring proprietary hardware or Internet-of-Things (IoT) field sensors:
+**AgriNova Smart AI** is a transparent, farmer-centric agronomy platform that delivers actionable, explainable, and accessible intelligence without requiring proprietary hardware or Internet-of-Things (IoT) field sensors:
 1. **Foliar Disease Detection (Core)**: Computer vision pipeline built on deep transfer learning to detect crop pathologies early from standard smartphone leaf photographs.
 2. **Crop Recommendation (Bonus A)**: Machine-learning tabular decision engine predicting optimal, climate-resilient crop varieties based on local soil chemistry and climate envelopes.
 3. **Smart Irrigation Advisor (Bonus B)**: Explainable 5-tier heuristic irrigation scheduling engine combining farmer-observed soil moisture with multi-day precipitation forecasts.
@@ -23,10 +20,10 @@ Smallholder farmers in India face compounding agronomic challenges: unpredictabl
 
 ## 🏗️ Architecture & Module Breakdown
 
-AgriSmart AI strictly distinguishes between **Computer Vision Machine Learning**, **Tabular Classification Machine Learning**, **Deterministic Expert Heuristic Systems**, and **Grounded Generative AI**.
+AgriNovaSmart AI strictly distinguishes between **Computer Vision Machine Learning**, **Tabular Classification Machine Learning**, **Deterministic Expert Heuristic Systems**, and **Grounded Generative AI**.
 
 ```
-AgriSmart-AI/
+AgriNova Smart-AI/
 ├── app/                              # Farmer-friendly web application (Flask)
 │   ├── config.py                     # App configuration & environment loading
 │   ├── main.py                       # App factory & route definitions
@@ -252,47 +249,6 @@ In compliance with SIH 2026 hackathon regulations:
 - **Public Datasets**: Public datasets (PlantVillage for computer vision; precision agriculture crop recommendation dataset by Atharva Inamdar / gabbygab1233; FAO 56/33 agronomic tables) are credited and cited.
 - **Original Architecture**: All service boundary implementations, agrometeorological heuristic rules, dynamic sustainability weight renormalization formulas, grounded conversational fallbacks, and user interfaces are original implementations developed for this project. No public repository or competition notebook was copied wholesale.
 
----
 
-## ✅ SIH 2026 Submission Readiness
 
-| Item | Status | Verification Detail |
-|---|---|---|
-| **Core Disease Detection Implementation** | `[PASS]` | PyTorch ResNet-50 pipeline implemented (`model/model.py`, `model/train.py`). |
-| **`predict(image_path)` Interface & CLI** | `[PASS]` | Implemented in `model/predict.py` with CLI and callable interface. |
-| **Honest Data Split Methodology** | `[PASS]` | Stratified splitting with zero index leakage (`model/dataset.py`). |
-| **Official SIH Held-Out Field Evaluation** | `[PENDING]` | Pending organizer-provided test dataset at hackathon evaluation. |
-| **Official SIH Disease Macro-F1** | `[PENDING]` | No fabricated score reported; pending official test evaluation. |
-| **Official SIH Confusion Matrix** | `[PENDING]` | Pending evaluation on official field dataset. |
-| **Official SIH Per-Class Precision/Recall** | `[PENDING]` | Pending evaluation on official field dataset. |
-| **Bonus Module A: Crop Recommendation** | `[PASS]` | Random Forest (99.39% test accuracy, 0.9939 Macro-F1 on 22 crops). |
-| **Bonus Module B: Smart Irrigation** | `[PASS]` | Explainable 5-tier deterministic heuristic engine. |
-| **Bonus Module C: Weather Intelligence** | `[PASS]` | Open-Meteo live API integration with 15-min cache and DEMO fallback. |
-| **Bonus Module D: Sustainability Score** | `[PASS]` | Multi-dimensional index with dynamic renormalization & FAO benchmarks. |
-| **Bonus Module E: Farmer Assistant** | `[PASS]` | Grounded Google Gemini integration with LocalRuleProvider fallback. |
-| **Module F: IoT Integration** | `[NOT APPLICABLE]` | Intentionally excluded; 100% manual farmer inputs, zero hardware sensors. |
-| **Module G: Agentic Advisor** | `[NOT IMPLEMENTED]` | Intentionally un-implemented future phase stub. |
-| **README Documentation** | `[PASS]` | Comprehensive, SIH Section 7.2 compliant. |
-| **`/app` Application Code** | `[PASS]` | Modular Flask web application with responsive UI. |
-| **`/model` Architecture & Inference** | `[PASS]` | Verified model architectures and prediction interfaces. |
-| **`/report` Evaluation Reports** | `[PASS]` | Verified crop recommendation report & one-page disease model report. |
-| **`requirements.txt`** | `[PASS]` | Clean direct dependencies (`joblib`, `requests`, `torch`, `flask`, etc.). |
-| **Run & Reproducibility Instructions** | `[PASS]` | Verified exact relative commands for setup, run, and test. |
-| **Dataset & License Documentation** | `[PASS]` | Sources, licenses, and separation rules documented. |
-| **Architecture Documentation** | `[PASS]` | System layout and modular separation fully documented. |
-| **Limitations** | `[PASS]` | Documented across all modules. |
-| **Demo Video Link** | `[PENDING]` | Placeholder: *Link to be added upon recording completion.* |
-| **Deployment Link** | `[PENDING]` | Placeholder: *Deployment URL to be added upon cloud staging.* |
-| **Originality Declaration** | `[PASS]` | Stated in Originality & Third-Party Attribution section. |
-| **Third-Party Attribution** | `[PASS]` | All datasets, libraries, and frameworks attributed. |
-| **Secret Protection** | `[PASS]` | Zero secrets committed; server-side environment variables only. |
-| **Clean `.gitignore`** | `[PASS]` | Covers `.env`, caches, uploads, logs, and checkpoints. |
-| **Automated Tests** | `[PASS]` | 399/399 unit and integration tests passing. |
-
----
-
-## 👥 Team & Submission Information
-
-- **Project**: AgriSmart AI — Intelligent Agriculture for a Sustainable Future
-- **Hackathon**: Smart India Hackathon (SIH) 2026
 - **License**: MIT License / Open Source
