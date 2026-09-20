@@ -57,7 +57,7 @@ AgriNova Smart-AI/
 ├── .env.example                      # Safe environment configuration template
 ├── .gitignore                        # Git exclusion rules protecting secrets & temporary data
 ├── requirements.txt                  # Python runtime dependencies
-└── README.md                         # Official SIH project documentation
+└── README.md                        
 ```
 
 ---
@@ -72,10 +72,6 @@ AgriNova Smart-AI/
   - CLI: `python model/predict.py --image path/to/leaf.jpg --top-k 5`
 - **Application Integration**: [`app/services/disease_service.py`](app/services/disease_service.py) automatically inspects whether a trained checkpoint is available. If a trained checkpoint is present, it executes live inference. If not present, it operates in an explicitly labeled Development Mock Mode with an amber banner to prevent false claims.
 - **Primary Metrics**: Macro-averaged F1 score, Top-1 accuracy, multi-class confusion matrix, per-class precision and recall.
-- **Official SIH Evaluation Status**:
-  > **"Final held-out SIH field-test Macro-F1 is pending organizer-provided evaluation data. No fabricated score is reported."**
-  >
-  > *Integrity Policy*: The SIH problem statement stipulates that final evaluation must be conducted on an unseen, organizer-provided field-condition test set. In strict compliance with hackathon ethics, no synthetic metrics, fabricated confusion matrices, or baseline comparisons are reported as official SIH results.
 
 ### 2. Bonus Module A — Crop Recommendation (Tabular Machine Learning)
 - **Purpose**: Recommends the most suitable and climate-resilient crop varieties based on soil chemical parameters and climatic factors.
@@ -245,7 +241,7 @@ A dedicated one-page report for the Core Crop Disease Detection model is availab
 
 In compliance with SIH 2026 hackathon regulations:
 - **AI Assistance**: AI coding assistants (Google Antigravity / Gemini) were utilized for code structuring, testing, and documentation assistance during project development.
-- **Open-Source Libraries**: AgriSmart AI builds upon established open-source libraries: PyTorch, Torchvision, Scikit-Learn, Flask, NumPy, Pandas, Pillow, OpenCV, Requests, and Pytest.
+- **Open-Source Libraries**: AgriNovaSmart AI builds upon established open-source libraries: PyTorch, Torchvision, Scikit-Learn, Flask, NumPy, Pandas, Pillow, OpenCV, Requests, and Pytest.
 - **Public Datasets**: Public datasets (PlantVillage for computer vision; precision agriculture crop recommendation dataset by Atharva Inamdar / gabbygab1233; FAO 56/33 agronomic tables) are credited and cited.
 - **Original Architecture**: All service boundary implementations, agrometeorological heuristic rules, dynamic sustainability weight renormalization formulas, grounded conversational fallbacks, and user interfaces are original implementations developed for this project. No public repository or competition notebook was copied wholesale.
 
