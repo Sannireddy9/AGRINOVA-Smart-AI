@@ -1,28 +1,24 @@
-﻿# AgriNova Smart AI — Intelligent Agriculture for a Sustainable Future
+﻿# AgriNova Smart AI-Smart Agricultural Assistance Application
 
 
 
 ## 📌 Problem & Solution Overview
 
-### The Problem
-Smallholder farmers in India face compounding agronomic challenges: unpredictable weather anomalies due to climate change, sudden foliar disease outbreaks that devastate harvests, uncalibrated water usage leading to aquifer depletion or root rot, and soil degradation from imbalanced chemical fertilization. Traditional agricultural advisory systems often require expensive IoT hardware, provide opaque recommendations, or suffer from long turnaround times.
+### The Problem Statement :
+Agriculture remains the backbone of many economies, yet farmers face persistent challenges in ensuring crop health, adapting to unpredictable weather, and accessing timely expert guidance. Traditional methods of crop monitoring are labor-intensive and prone to human error, while weather fluctuations increasingly threaten yields. Moreover, many farmers lack immediate access to agricultural experts, leaving them without reliable advice during critical decision-making moments.
 
-### The AgriSmart AI Solution
+### The AgriNova Smart AI Solution
 **AgriNova Smart AI** is a transparent, farmer-centric agronomy platform that delivers actionable, explainable, and accessible intelligence without requiring proprietary hardware or Internet-of-Things (IoT) field sensors:
-1. **Foliar Disease Detection (Core)**: Computer vision pipeline built on deep transfer learning to detect crop pathologies early from standard smartphone leaf photographs.
+1. **Crop Disease Detection (Core)**:  built on deep transfer learning to detect crop pathologies early from standard smartphone leaf photographs.
 2. **Crop Recommendation (Bonus A)**: Machine-learning tabular decision engine predicting optimal, climate-resilient crop varieties based on local soil chemistry and climate envelopes.
-3. **Smart Irrigation Advisor (Bonus B)**: Explainable 5-tier heuristic irrigation scheduling engine combining farmer-observed soil moisture with multi-day precipitation forecasts.
-4. **Weather-Based Intelligence (Bonus C)**: Real-time agrometeorological tracking via Open-Meteo providing 7-day outlooks, foliar disease risk indices, heat-stress alerts, and chemical spray drift windows.
+3. **Smart Irrigation Advisor (Bonus B)**: Explainable  irrigation scheduling engine combining farmer-observed soil moisture with multi-day precipitation forecasts.
+4. **Weather-Based Intelligence (Bonus C)**: Real-time agrometeorological tracking which indicates  Crop disease risk indices, Weather influence on the crop .
 5. **Farm Sustainability Score (Bonus D)**: Environmental stewardship index (0–100) featuring dynamic missing-data weight renormalization and empirical FAO / ICAR water-demand benchmarks.
 6. **Farmer AI Assistant (Bonus E)**: Conversational decision support powered by Google Gemini (Free Tier) grounded strictly in active farm data, backed by a 100% deterministic local rule fallback engine.
 
----
 
 ## 🏗️ Architecture & Module Breakdown
 
-AgriNovaSmart AI strictly distinguishes between **Computer Vision Machine Learning**, **Tabular Classification Machine Learning**, **Deterministic Expert Heuristic Systems**, and **Grounded Generative AI**.
-
-```
 AgriNova Smart-AI/
 ├── app/                              # Farmer-friendly web application (Flask)
 │   ├── config.py                     # App configuration & environment loading
@@ -65,7 +61,7 @@ AgriNova Smart-AI/
 ## 🔬 Implemented Modules
 
 ### 1. Core Module — Crop Disease Detection (Computer Vision)
-- **Purpose**: Rapid foliar disease diagnosis from crop leaf photographs to assist farmers with early intervention and prevent epidemic crop loss.
+- **Purpose**: Rapid Crop disease diagnosis from crop leaf photographs to assist farmers with early intervention and prevent epidemic crop loss.
 - **Technology**: Deep Convolutional Transfer Learning using PyTorch and Torchvision. ImageNet-pretrained ResNet-50 backbone with a custom linear classification head.
 - **Inference Interface**:
   - Python interface: `predict(image_path: str | Path, checkpoint_path=None, device="cpu", top_k=3) -> dict` in [`model/predict.py`](model/predict.py).
@@ -103,7 +99,7 @@ AgriNova Smart-AI/
 - **Technology**: Live integration with [Open-Meteo APIs](https://open-meteo.com/en/docs) with 15-minute in-memory caching and manual on-demand refresh.
 - **Features**:
   - 7-day temperature, precipitation sum, and rain probability forecasts.
-  - Foliar disease microclimate risk index based on prolonged relative humidity ($\ge 75\%$).
+  - Crop disease microclimate risk index based on prolonged relative humidity ($\ge 75\%$).
   - Crop heat stress warnings ($\ge 35^\circ\text{C}$) tracking growth stage sensitivity.
   - Chemical spray drift windows based on wind speed ($\ge 20\text{ km/h}$) and active rainfall.
 - **Operational Mode**: LIVE mode queries Open-Meteo. If network is unavailable or rate-limited, safely transitions to an explicitly badged DEMO mode with deterministic simulated data and a retry option.
@@ -115,7 +111,7 @@ AgriNova Smart-AI/
   $$\text{Sustainability Score} = \frac{\sum_{i \in \text{Available}} (\text{Score}_i \times W_i)}{\sum_{i \in \text{Available}} W_i}$$
   - Water Efficiency ($W = 40\%$): Evaluates irrigation method baseline (Drip: 90, Sprinkler: 75, Flood: 50, Rainfed: 85), soil moisture balance, and weather opportunities.
   - Resource & Soil Conservation ($W = 30\%$): Evaluates nutrient practices (Organic: 95, Integrated: 85, Moderate: 70, Intensive Chemical: 45) and soil cover (Cover crops, mulching, conservation tillage).
-  - Crop Foliar Health ($W = 30\%$): Evaluates foliar vigor (Healthy: 95, Stress: 75, Disease: 45, Severe: 25).
+  - Crop  Health ($W = 30\%$): Evaluates Crop vigor (Healthy: 95, Stress: 75, Disease: 45, Severe: 25).
 - **Dynamic Renormalization**: If foliar health is unassessed, its 30% weight is omitted from the denominator, renormalizing Water ($57.1\%$) and Soil ($42.9\%$) without fabricating data or penalizing the farmer.
 - **Agronomic Benchmarks**: Integrates seasonal crop water requirements ($ET_c$) and critical stage depletion fractions from FAO Irrigation and Drainage Paper 56, Paper 33, and ICAR references ([`data/sustainability/crop_requirements.csv`](data/sustainability/crop_requirements.csv)).
 
@@ -126,25 +122,14 @@ AgriNova Smart-AI/
 - **Security & Safety**: Server-side API key management (never exposed to client), prompt-injection defenses against system prompt or environment variable extraction, and refusal guardrails for hazardous chemical synthesis or off-label pesticide recommendations.
 - **Session Memory**: Compact session storage strictly isolating farm context parameters (`session["farm_context"]`) without storing raw API keys, chat transcripts, or large model payloads in cookies.
 
----
-
-## 🚫 Modules Intentionally Not Implemented
-
-- **IoT Integration (Module F)**: **Intentionally Excluded**. AgriSmart AI is strictly designed as a zero-hardware, zero-sensor solution. All soil moisture and field parameters are entered manually by the farmer based on physical observations. No fake IoT telemetry, hardware simulators, or microcontrollers are used.
-- **Agentic Advisor (Module G)**: **Not Implemented**. Autonomous multi-step farm intervention planning is an un-implemented future research stub ([`app/services/advisor_service.py`](app/services/advisor_service.py)) and is not claimed as a completed feature.
-
----
 
 ## 📊 Datasets Used & Attributions
 
 | Dataset | Module | Source / Reference | License | Role in Project |
 |---|---|---|---|---|
 | **PlantVillage** | Disease Detection | Hughes & Salathé (2015), Penn State / EPFL ([GitHub Repo](https://github.com/spMohanty/PlantVillage-Dataset)) | CC0: Public Domain | Training and validation pipeline foundation for foliar disease classification. |
-| **Official SIH Held-out Field Dataset** | Disease Detection | Smart India Hackathon 2026 Organizers | Proprietary / SIH Organizers | Official unseen test set for hackathon evaluation. **Must NEVER be used for training.** Status: *Pending organizer release.* |
 | **Crop Recommendation Benchmark** | Crop Recommendation | Atharva Inamdar / gabbygab1233 ([GitHub](https://raw.githubusercontent.com/gabbygab1233/Crop-Recommender/main/Crop_recommendation.csv)) | CC0: Public Domain | Tabular dataset (2,200 rows, 22 crops, 7 features) used for Random Forest training and held-out validation. |
 | **Crop Water Requirements ($ET_c$) & Depletion ($p$)** | Sustainability Score | United Nations FAO Irrigation & Drainage Paper 56, Paper 33, and ICAR Water Management | Open Academic / UN FAO | Empirical reference data for 17 major crops ([`data/sustainability/crop_requirements.csv`](data/sustainability/crop_requirements.csv)). |
-
----
 
 ## ⚡ Reproducibility & Run Instructions
 
@@ -172,7 +157,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment (Optional for GenAI)
+### 2. Configure Environment 
 
 Copy the safe example environment template:
 ```bash
@@ -244,7 +229,4 @@ In compliance with SIH 2026 hackathon regulations:
 - **Open-Source Libraries**: AgriNovaSmart AI builds upon established open-source libraries: PyTorch, Torchvision, Scikit-Learn, Flask, NumPy, Pandas, Pillow, OpenCV, Requests, and Pytest.
 - **Public Datasets**: Public datasets (PlantVillage for computer vision; precision agriculture crop recommendation dataset by Atharva Inamdar / gabbygab1233; FAO 56/33 agronomic tables) are credited and cited.
 - **Original Architecture**: All service boundary implementations, agrometeorological heuristic rules, dynamic sustainability weight renormalization formulas, grounded conversational fallbacks, and user interfaces are original implementations developed for this project. No public repository or competition notebook was copied wholesale.
-
-
-
 - **License**: MIT License / Open Source
