@@ -224,7 +224,6 @@ A dedicated one-page report for the Core Crop Disease Detection model is availab
 
 ## 📝 Originality & Third-Party Attribution
 
-In compliance with SIH 2026 hackathon regulations:
 - **AI Assistance**: AI coding assistants (Google Antigravity / Gemini) were utilized for code structuring, testing, and documentation assistance during project development.
 - **Open-Source Libraries**: AgriNovaSmart AI builds upon established open-source libraries: PyTorch, Torchvision, Scikit-Learn, Flask, NumPy, Pandas, Pillow, OpenCV, Requests, and Pytest.
 - **Public Datasets**: Public datasets (PlantVillage for computer vision; precision agriculture crop recommendation dataset by Atharva Inamdar / gabbygab1233; FAO 56/33 agronomic tables) are credited and cited.
