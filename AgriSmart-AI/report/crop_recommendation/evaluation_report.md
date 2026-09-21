@@ -1,9 +1,8 @@
-﻿# 🌾 AgriSmart AI — Crop Recommendation Evaluation Report
+﻿# 🌾 AgriNova Smart AI — Crop Recommendation Evaluation Report
 
 > [!IMPORTANT]
 > **Dataset & Evaluation Separation Notice**:
 > This evaluation applies exclusively to the **Crop Recommendation Tabular Module** on its dedicated public benchmark test split.
-> It is completely independent of the SIH Disease Detection model and the SIH held-out foliar disease test set.
 > These metrics must not be conflated with disease-detection classification metrics.
 
 ## 1. Executive Summary
@@ -64,15 +63,11 @@
 
 A total of 330 predictions were evaluated across 22 classes on the test set.
 - Correctly classified instances (diagonal sum): **328 / 330**
-- Full 22x22 matrix is serialized to [`report/crop_recommendation/confusion_matrix.json`](report/crop_recommendation/confusion_matrix.json).
 
 ## 6. Honest Limitations & Operational Scope
 
-1. **Contextual Variables Not in Training Set**:
-   The SIH problem statement requests consideration of Soil Type, Water Availability, Season, Location, and Previous Crop.
-   These fields are collected by the AgriSmart AI application interface for advisory context, but are **NOT** present in the benchmark tabular dataset.
-   In accordance with competition integrity, no synthetic or fake values were created to force these fields into ML training.
-2. **Suitability Score Interpretation**:
+
+1. **Suitability Score Interpretation**:
    Output percentages represent model class membership probabilities based on historical agro-climatic clusters. They indicate agro-climatic alignment, **NOT guaranteed agricultural yield**.
-3. **Microclimate Variability**:
+2. **Microclimate Variability**:
    Local weather anomalies, pest pressure, and irrigation variations can affect actual crop performance beyond the historical tabular envelope.
